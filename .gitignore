@@ -1,37 +1,51 @@
-HELP.md
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+# ============================================
+#  EHR PROJECT — SPRING BOOT + ECLIPSE + GRADLE
+# ============================================
 
-### STS ###
-.apt_generated
+# --- Eclipse project files ---
 .classpath
-.factorypath
 .project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+.settings/
+.factorypath
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
+# --- IntelliJ IDEA / VS Code ---
+.idea/
 .vscode/
+*.iml
+
+# --- Build / Output directories ---
+/bin/
+/build/
+/out/
+/target/
+.gradle/
+
+# --- Logs, temp, and OS clutter ---
+*.log
+*.tmp
+*.bak
+*.swp
+*.orig
+*.DS_Store
+Thumbs.db
+
+# --- Environment / Local config ---
+.env
+application.properties
+application.yml
+application-local.properties
+application-local.yml
+
+# --- Generated files ---
+/.gradle/
+/node_modules/
+/dist/
+/coverage/
+
+# --- Java / Compiler ---
+*.class
+
+# --- Misc ---
+/*.war
+/*.jar
+!gradle-wrapper.jar  # keep Gradle wrapper
