@@ -68,7 +68,9 @@ function initSchedulerCalendar(providerId = 1) {
 
   // --- Calendar setup ---
   const calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: "timeGridDay",
+	initialView: "timeGridWeek",
+	initialDate: new Date(),
+    selectable: true,
     slotDuration: "00:15:00",
     expandRows: true,
     nowIndicator: true,
