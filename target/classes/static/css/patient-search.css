@@ -1,0 +1,120 @@
+/* ---------- PATIENT SEARCH (Modern Blue Theme) ---------- */
+
+/* Search filters */
+#patient-search-filters {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+#patient-search-filters input {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--color-border, #ccd2e3);
+  border-radius: 6px;
+  width: 180px;
+  max-width: 200px;
+  background-color: #f9fbfe;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+#patient-search-filters input:focus {
+  outline: none;
+  border-color: var(--color-accent, #4b84e0);
+  box-shadow: 0 0 0 3px rgba(75, 132, 224, 0.15);
+}
+
+/* Search button */
+#search-btn {
+  padding: 0.55rem 1.2rem;
+  background: var(--color-accent, #4b84e0);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+#search-btn:hover {
+  background: var(--color-accent-hover, #3c6fc0);
+  box-shadow: 0 3px 6px rgba(75, 132, 224, 0.2);
+}
+
+/* Results table container */
+#patient-results {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+/* Header styling */
+#patient-results thead th {
+  background: var(--color-accent, #4b84e0);
+  color: #ffffff;
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--color-accent-hover, #3c6fc0);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+#patient-results thead th:hover {
+  background: var(--color-accent-hover, #3c6fc0);
+}
+
+/* Table rows */
+#patient-results tbody tr:nth-child(even) {
+  background: #f8faff;
+}
+
+#patient-results tbody tr:hover {
+  background: #eef3ff;
+  cursor: pointer;
+}
+
+/* Table cells */
+#patient-results td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+/* Pagination */
+#pagination {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+#pagination button {
+  background: var(--color-accent, #4b84e0);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.9rem;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+#pagination button:hover {
+  background: var(--color-accent-hover, #3c6fc0);
+}
+
+#pagination button:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+#pagination span {
+  color: #334155;
+  font-weight: 500;
+}

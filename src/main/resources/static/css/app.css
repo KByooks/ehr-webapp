@@ -1,0 +1,145 @@
+/* ---------- app.css ---------- */
+/* --- Global base styles --- */
+@import url('layout.css');
+@import url('calendar.css');
+@import url('patient-search.css');
+@import url('demographics.css');
+@import url('forms.css');
+@import url('login.css');
+@import url('appointment.css');
+
+/* ---------- Design System ---------- */
+:root {
+  --color-bg: #ecf2f9;
+  --color-surface: #ffffff;
+  --color-surface-light: #f5f8fc;
+  --color-accent: #3a6ea5;          /* 💙 steel blue */
+  --color-accent-hover: #305c8a;
+  --color-accent-dark: #1e2f46;
+  --color-accent-light: #a8c1e6;
+  --color-text: #1a1d2a;
+  --color-muted: #5e6573;
+  --color-border: #d2d7e0;
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+  --radius: 10px;
+  --transition: all 0.2s ease;
+}
+
+
+
+/* Base Typography & Page */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: "Inter", "Segoe UI", sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Buttons */
+button {
+  background-color: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  transition: var(--transition);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+button:hover {
+  background-color: var(--color-accent-hover);
+}
+
+button.cancel-btn,
+#cancel-appointment {
+  background-color: var(--color-surface-light);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+button.cancel-btn:hover,
+#cancel-appointment:hover {
+  background-color: var(--color-surface);
+}
+
+/* Inputs and selects */
+input, select {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  outline: none;
+  transition: var(--transition);
+}
+.delete-btn {
+  background: #c0392b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.delete-btn:hover {
+  background: #e74c3c;
+}
+
+
+input:focus, select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 4px var(--color-accent-light);
+}
+
+/* Form fields */
+.field-group label {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.field-group.has-error input,
+.field-group.has-error select {
+  border-color: var(--color-danger);
+}
+
+.field-group.has-ok input,
+.field-group.has-ok select {
+  border-color: var(--color-success);
+}
+
+/* Context / Modals */
+.modal-content {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: 1.25rem;
+}
+
+.context-bar {
+  background: var(--color-surface-light);
+  color: var(--color-text);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
+/**Button Size*/
+button {
+  width: auto;
+  max-width: 200px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+

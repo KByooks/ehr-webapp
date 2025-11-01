@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+	<div th:fragment="content">
+		<h1>Patient Search</h1>
+
+		<!-- Search Filters -->
+		<div id="patient-search-filters" class="search-filters">
+			<div class="filter-row">
+  <input type="text" id="filter-firstName" placeholder="First name" autocomplete="off" />
+  <input type="text" id="filter-lastName" placeholder="Last name" autocomplete="off" />
+  <input type="text" id="filter-dob" placeholder="DOB (MM/DD/YYYY)" autocomplete="off" />
+  <input type="text" id="filter-phone" placeholder="Phone" autocomplete="off" />
+  <input type="text" id="filter-email" placeholder="Email" autocomplete="off" />
+  <input type="text" id="filter-city" placeholder="City" autocomplete="off" />
+  <input type="text" id="filter-state" placeholder="State" autocomplete="off" />
+  <input type="text" id="filter-zip" placeholder="ZIP" autocomplete="off" />
+
+  <button id="search-btn">Search</button>
+</div>
+
+		</div>
+
+		<!-- Results Table -->
+		<table id="patient-results" class="results-table">
+			<thead>
+				<tr>
+					<th data-field="firstName">First Name</th>
+					<th data-field="lastName">Last Name</th>
+					<th data-field="dob">DOB</th>
+					<th data-field="phonePrimary">Phone</th>
+					<th data-field="addressLine1">Address</th>
+					<th data-field="city">City</th>
+					<th data-field="state">State</th>
+					<th data-field="zip">ZIP</th>
+					<th data-field="email">Email</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+
+
+		<div id="pagination" class="pagination-controls"></div>
+
+
+
+	</div>
+</body>
+</html>

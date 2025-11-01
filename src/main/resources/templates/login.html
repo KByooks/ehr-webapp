@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Clinic Portal Login</title>
+  <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+  <div class="login-box">
+    <h2>Clinic Portal Login</h2>
+
+    <form th:action="@{/login}" method="post" id="login-form">
+      <label>Username</label>
+      <input type="text" name="username" id="username" required>
+
+      <label>Password</label>
+      <input type="password" name="password" id="password" required>
+
+      <button type="submit">Log In</button>
+
+      <div th:if="${param.error}" style="color:red;">
+        Invalid username or password
+      </div>
+      <div th:if="${param.logout}" style="color:green;">
+        Logged out successfully
+      </div>
+    </form>
+  </div>
+
+  <script>
+  document.getElementById("login-form").addEventListener("submit", () => {
+    // For Electron — this is triggered only if login succeeded
+    setTimeout(() => {
+      if (window.electronAPI && typeof window.electronAPI.loginSuccess === "function") {
+        window.electronAPI.loginSuccess();
+      }
+    }, 1000); // delay slightly to ensure backend redirects
+  });
+  </script>
+</body>
+</html>

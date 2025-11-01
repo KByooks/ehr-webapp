@@ -1,0 +1,113 @@
+#calendar {
+  background-color: #E6EEFF; /* ultra-light blue tint */
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow-soft);
+  height: 90vh;
+}
+
+/* FullCalendar Theme */
+.fc-theme-standard {
+  --fc-border-color: var(--color-border);
+  --fc-event-bg-color: var(--color-accent); /* unified event color */
+  --fc-event-border-color: var(--color-accent-hover);
+  --fc-event-text-color: #ffffff;
+  --fc-today-bg-color: #2563eb1a;
+  --fc-page-bg-color: #E6EEFF; /* matches calendar background tint */
+}
+
+.fc .fc-toolbar-title {
+  color: #1E2A44; /* matches time/day headers */
+  font-weight: 700;
+}
+
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-number,
+.fc .fc-timegrid-slot-label {
+  color: #1E2A44; /* darker navy for contrast */
+  font-weight: 500;
+}
+
+.fc .fc-button-primary {
+  background: #2563EB; /* same as title/sidebar */
+  border: none;
+  color: white;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  transition: var(--transition);
+}
+
+.fc .fc-button-primary:hover {
+  background: #1E4FCF;
+}
+
+.fc .fc-event {
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* =========================================================
+   FullCalendar Toolbar Buttons (refined Steel Blue theme)
+   ========================================================= */
+.fc .fc-toolbar {
+  margin-bottom: 1rem;
+}
+
+/* Toolbar Buttons (Today, Day/Week/Month, Arrows) */
+.fc .fc-button-primary {
+  background: #f0f4f8;               /* soft neutral background */
+  color: #1e2f46;                    /* dark navy-gray text */
+  border: 1px solid #cfd8e3;         /* subtle border */
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font-weight: 500;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Hover & Active */
+.fc .fc-button-primary:hover {
+  background: #e2e8f0;
+  color: #152238;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: var(--color-accent);   /* your steel blue accent */
+  color: white;
+  border-color: var(--color-accent-hover);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* Arrow Icons */
+.fc .fc-icon {
+  color: #1e2f46;
+  font-weight: bold;
+}
+
+/* Active State for Arrows */
+.fc .fc-button-primary.fc-prev-button:active .fc-icon,
+.fc .fc-button-primary.fc-next-button:active .fc-icon {
+  color: white;
+}
+
+/* Title */
+.fc .fc-toolbar-title {
+  color: #1e2f46;
+  font-weight: 700;
+}
+
+/* Make the "Today" button match active state when on current date */
+.fc .fc-today-button.fc-button-primary:disabled {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent-hover);
+  opacity: 1 !important; /* override FC’s gray-out */
+  cursor: default;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+
+
+
