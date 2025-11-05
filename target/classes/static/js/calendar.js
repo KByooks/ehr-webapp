@@ -1,164 +1,157 @@
 // ============================================
 // calendar.js
-// Scheduler logic with context linking
+// Scheduler logic integrated with ViewManager
 // ============================================
-// Run on scheduler load and also after patient assignment
-window.handleReturnFromPatientSearch = async function (providerId = 1) {
-  try {
-    const returnExpect = sessionStorage.getItem("ehr_returnExpect") === "false"; // consumed already
-    const activeRaw = sessionStorage.getItem("ehr_returnActive");
-    const patientRaw = sessionStorage.getItem("ehr_selectedPatient");
-
-    if (!activeRaw || !patientRaw) return;
-
-    const activeAppt = JSON.parse(activeRaw);
-    const patient = JSON.parse(patientRaw);
-
-    console.log("🔁 Scheduler loaded with selected patient:", patient);
-
-    // reopen modal
-    setTimeout(() => {
-      window.AppointmentModal.open(activeAppt.providerId || providerId, activeAppt.startISO);
-      setTimeout(() => {
-        const input = document.getElementById("patientName");
-        if (input) {
-          input.value = `${patient.firstName} ${patient.lastName}`.trim();
-          input.dataset.patientId = patient.id;
-        }
-      }, 350);
-    }, 250);
-  } catch (e) {
-    console.warn("handleReturnFromPatientSearch failed:", e);
-  }
-};
 
 function initSchedulerCalendar(providerId = 1) {
-  const calendarEl = document.getElementById("calendar");
-  if (!calendarEl) return;
+	const calendarEl = document.getElementById("calendar");
+	if (!calendarEl) return;
 
-  // --- Handle return from patient search (session-based & robust) ---
-  (async () => {
-    try {
-      const returnExpect = sessionStorage.getItem("ehr_returnExpect") === "true";
-      const activeRaw = sessionStorage.getItem("ehr_returnActive");
-      const patientRaw = sessionStorage.getItem("ehr_selectedPatient");
-      if (returnExpect && activeRaw && patientRaw) {
-        const activeAppt = JSON.parse(activeRaw);
-        const patient = JSON.parse(patientRaw);
+	// --- Utilities ---
+	const pad2 = (n) => String(n).padStart(2, "0");
+	const parseHHMM = (v) => {
+		if (!v) return null;
+		const [h, m] = v.split(":").map(Number);
+		return isNaN(h) || isNaN(m) ? null : { h, m };
+	};
+	const addMinutes = (hhmm, minutes) => {
+		const t = parseHHMM(hhmm);
+		if (!t) return null;
+		const total = t.h * 60 + t.m + (Number(minutes) || 0);
+		return `${pad2(Math.floor(total / 60) % 24)}:${pad2(total % 60)}`;
+	};
 
-        // consume the flag so it doesn't loop
-        sessionStorage.removeItem("ehr_returnExpect");
+	// --- Return from patient search ---
+	window.handleReturnFromPatientSearch = function() {
+		try {
+			const expect = sessionStorage.getItem("ehr_returnExpect") === "true";
+			const activeRaw = sessionStorage.getItem("ehr_returnActive");
+			const selectedRaw = sessionStorage.getItem("ehr_selectedPatient");
+			if (!expect || !activeRaw || !selectedRaw) return;
 
-        console.log("🔁 Returning from patient search:", patient);
-        setTimeout(() => {
-          window.AppointmentModal.open(activeAppt.providerId || providerId, activeAppt.startISO);
-          setTimeout(() => {
-            const input = document.getElementById("patientName");
-            if (input) {
-              input.value = `${patient.firstName} ${patient.lastName}`.trim();
-              input.dataset.patientId = patient.id;
-            }
-          }, 350);
-        }, 250);
-      }
-    } catch (e) {
-      console.warn("Return-from-search init check failed:", e);
-    }
-  })();
+			const active = JSON.parse(activeRaw);
+			const patient = JSON.parse(selectedRaw);
+			sessionStorage.removeItem("ehr_returnExpect");
+			sessionStorage.removeItem("ehr_selectedPatient");
 
-  // --- Calendar setup ---
-  const calendar = new FullCalendar.Calendar(calendarEl, {
-	initialView: "timeGridWeek",
-	initialDate: new Date(),
-    selectable: true,
-    slotDuration: "00:15:00",
-    expandRows: true,
-    nowIndicator: true,
-    height: "90vh",
-    headerToolbar: {
-      left: "prev,next today",
-      center: "title",
-      right: "dayGridMonth,timeGridWeek,timeGridDay",
-    },
-    events: (fetchInfo, success, failure) => {
-      fetch(`/api/schedule/${providerId}?start=${fetchInfo.startStr}&end=${fetchInfo.endStr}`)
-        .then((r) => r.json())
-        .then(success)
-        .catch(failure);
-    },
+			window.CurrentAppointmentData.reset();
+			window.CurrentAppointmentData.setFromAppointment(active);
 
-    // --- Double-click empty slot -> create flow ---
-    dateClick: (info) => {
-      if (calendarEl.dataset.lastClick === info.dateStr) {
-        delete calendarEl.dataset.lastClick;
+			if (patient) {
+				const formatted = {
+					id: patient.id,
+					firstName: patient.firstName || "",
+					lastName: patient.lastName || "",
+				};
+				window.CurrentAppointmentData.updateField("patient", formatted);
+				window.CurrentAppointmentData.updateField("patientId", formatted.id);
+			}
 
-        // store context so, if we jump to patient search, we can come back
-        try {
-          sessionStorage.setItem("ehr_returnActive", JSON.stringify({
-            providerId,
-            startISO: info.dateStr
-          }));
-        } catch {}
-        window.AppointmentModal.open(providerId, info.dateStr);
-      } else {
-        calendarEl.dataset.lastClick = info.dateStr;
-        setTimeout(() => delete calendarEl.dataset.lastClick, 350);
-      }
-    },
+			const startISO = `${active.date || ""}T${active.timeStart || ""}`;
+			const apptData = window.CurrentAppointmentData.getAll(); // includes patient & patientId
+			setTimeout(() => {
+				window.AppointmentModal.open(apptData.providerId || providerId, startISO, apptData);
+			}, 100);
+		} catch (e) {
+			console.warn("Return-from-search restore failed:", e);
+		}
+	};
 
-    // --- Double-click existing event -> edit flow ---
-    eventClick: async (info) => {
-      const event = info.event;
-      const apptId = event.id;
+	// --- FullCalendar setup ---
+	const calendar = new FullCalendar.Calendar(calendarEl, {
+		initialView: "timeGridWeek",
+		slotDuration: "00:15:00",
+		expandRows: true,
+		nowIndicator: true,
+		height: "90vh",
+		headerToolbar: {
+			left: "prev,next today",
+			center: "title",
+			right: "dayGridMonth,timeGridWeek,timeGridDay",
+		},
 
-      if (calendarEl.dataset.lastEvent === apptId) {
-        delete calendarEl.dataset.lastEvent;
+		// Load events from backend
+		events: (fetchInfo, success, failure) => {
+			fetch(
+				`/api/schedule/provider/${providerId}?start=${fetchInfo.startStr}&end=${fetchInfo.endStr}`
+			)
+				.then((r) => r.json())
+				.then(success)
+				.catch(failure);
+		},
 
-        try {
-          // preload details so modal can fill faster
-          const res = await fetch(`/api/schedule/appointment/${apptId}`);
-          const appt = await res.json();
+		// --- Double-click empty slot → New appointment ---
+		dateClick: (info) => {
+			if (calendarEl.dataset.lastClick === info.dateStr) {
+				delete calendarEl.dataset.lastClick;
 
-          const startISO =
-            (appt.date && appt.timeStart) ? `${appt.date}T${appt.timeStart}` : event.startStr;
+				const startISO = info.dateStr;
+				const [date, time] = startISO.split("T");
+				const timeStart = time?.slice(0, 5) || "09:00";
+				const timeEnd = addMinutes(timeStart, 15);
 
-          // mark that we're editing this one
-          window.lastLoadedAppointmentId = apptId;
+				window.CurrentAppointmentData.reset();
+				window.CurrentAppointmentData.setFromAppointment({
+					providerId,
+					date,
+					timeStart,
+					timeEnd,
+				});
 
-          await window.AppointmentModal.open(appt.providerId || providerId, startISO);
+				window.AppointmentModal.open(providerId, startISO);
+			} else {
+				calendarEl.dataset.lastClick = info.dateStr;
+				setTimeout(() => delete calendarEl.dataset.lastClick, 350);
+			}
+		},
 
-          // prefill fields shortly after modal injects
-          setTimeout(() => {
-            const modal = document.querySelector(".modal-content");
-            if (!modal) return;
-            const setVal = (sel, val) => {
-              const el = modal.querySelector(sel);
-              if (el && val != null) el.value = val;
-            };
-            setVal("#date", appt.date);
-            setVal("#timeStart", appt.timeStart?.slice(0, 5));
-            setVal("#timeEnd", appt.timeEnd?.slice(0, 5));
-            setVal("#reason", appt.reason);
-            setVal("#appointmentType", appt.appointmentType);
-            setVal("#status", appt.status);
-            if (appt.patient) {
-              const input = modal.querySelector("#patientName");
-              if (input) {
-                input.value = `${appt.patient.firstName} ${appt.patient.lastName}`;
-                input.dataset.patientId = appt.patient.id;
-              }
-            }
-          }, 250);
-        } catch (e) {
-          console.error("Failed to load appointment details:", e);
-        }
-      } else {
-        calendarEl.dataset.lastEvent = apptId;
-        setTimeout(() => delete calendarEl.dataset.lastEvent, 350);
-      }
-    },
-  });
+		// --- Double-click existing event → Edit appointment ---
+		eventClick: async (info) => {
+			const apptId = info.event.id;
+			if (calendarEl.dataset.lastEvent === apptId) {
+				delete calendarEl.dataset.lastEvent;
+				try {
+					const res = await fetch(`/api/schedule/appointment/${apptId}`);
+					const appt = await res.json();
+					const startISO =
+						appt.date && appt.timeStart
+							? `${appt.date}T${appt.timeStart}`
+							: info.event.startStr;
 
-  calendar.render();
-  window.currentCalendar = calendar;
+					window.CurrentAppointmentData.reset();
+					window.CurrentAppointmentData.setFromAppointment({
+						...appt,
+						providerId: appt.providerId || providerId,
+					});
+					window.CurrentAppointmentData.updateField("appointmentId", appt.id);
+
+					await window.AppointmentModal.open(
+						appt.providerId || providerId,
+						startISO,
+						appt
+					);
+				} catch (e) {
+					console.error("Failed to load appointment:", e);
+				}
+			} else {
+				calendarEl.dataset.lastEvent = apptId;
+				setTimeout(() => delete calendarEl.dataset.lastEvent, 350);
+			}
+		},
+	});
+
+	calendar.render();
+	window.currentCalendar = calendar;
 }
+
+// --- View restoration ---
+document.addEventListener("view:shown", (e) => {
+	if (e.detail.name !== "scheduler") return;
+	try {
+		window.handleReturnFromPatientSearch();
+		if (window.currentCalendar)
+			requestAnimationFrame(() => window.currentCalendar.updateSize());
+	} catch (err) {
+		console.warn("view:shown reopen failed:", err);
+	}
+});

@@ -4,48 +4,56 @@
   <meta charset="UTF-8" />
   <title>Clinic Portal</title>
 
-  <!-- FullCalendar CSS -->
-  <link rel="stylesheet" href="/libs/fullcalendar/index.global.min.css" />
-
   <!-- App CSS -->
   <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body>
-  <div id="app">
-    <aside id="sidebar">
-      <h2>Clinic Portal</h2>
+  <div id="app" class="flex">
+    <aside id="sidebar" class="w-56 border-r p-4">
+      <h2 class="text-lg font-semibold mb-4">Clinic Portal</h2>
       <nav>
-        <ul>
-          <li><button onclick="loadSection('scheduler')">Scheduler</button></li>
-          <li><button onclick="loadSection('patient')">Patient Search</button></li>
-          <li><button onclick="loadSection('billing')">Billing</button></li>
-          <li><button onclick="loadSection('reports')">Reports</button></li>
+        <ul class="space-y-2">
+          <li><a href="#" data-nav="scheduler">Scheduler</a></li>
+          <li><a href="#" data-nav="patient">Patient Search</a></li>
+          <li><a href="#" data-nav="billing">Billing</a></li>
+          <li><a href="#" data-nav="reports">Reports</a></li>
         </ul>
       </nav>
     </aside>
 
-    <main id="main-content">
-      <h1>Welcome!</h1>
-      <p>Select a section from the sidebar.</p>
+    <!-- ✅ Unified ViewManager root container -->
+    <main id="app-root" class="flex-1 p-4">
+      <div id="view-loading" class="hidden">Loading...</div>
     </main>
   </div>
 
-  <!-- ✅ Modal container is ALWAYS present -->
+  <!-- ✅ Global modal container -->
   <div id="global-modal-container" data-loaded="false"></div>
 
   <!-- ============================= -->
   <!--          Scripts              -->
   <!-- ============================= -->
 
-  <!-- FullCalendar (must be before calendar.js) -->
+  <!-- FullCalendar -->
   <script src="/libs/fullcalendar/index.global.min.js"></script>
 
-  <!-- Core helpers (order matters) -->
-  <script src="/js/fragment-loader.js"></script>
+  <!-- Core managers -->
+  <script src="/js/view-manager.js"></script>
+  <script src="/js/current-appointment-data.js"></script>
   <script src="/js/modal-manager.js"></script>
-  <script src="/js/ehr-context.js"></script>
 
-  <!-- App boot & globals (defines window.loadSection and boot logic) -->
+  <!-- Bridge for legacy FragmentLoader references -->
+  <script>
+    window.FragmentLoader = {
+      load: (section, params = {}) => {
+        const q = new URLSearchParams(params).toString();
+        const url = `/fragments/${section}${q ? "?" + q : ""}`;
+        return window.ViewManager.loadView(section, url);
+      },
+    };
+  </script>
+
+  <!-- App boot -->
   <script src="/js/app.js"></script>
 
   <!-- Feature modules -->

@@ -9,6 +9,7 @@ import com.main.ehr.repository.PatientRepository;
 import com.main.ehr.repository.ProviderRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.*;
@@ -31,7 +32,8 @@ public class ScheduleApiController {
     }
 
     // ---------- Provider schedule for FullCalendar ----------
-    @GetMapping("/{providerId}")
+    // Unambiguous path to avoid matching "create" as a providerId
+    @GetMapping("/provider/{providerId}")
     public List<Map<String, Object>> getSchedule(
             @PathVariable Long providerId,
             @RequestParam(required = false) String start,
@@ -89,13 +91,17 @@ public class ScheduleApiController {
                         .body(Map.of("error", "Appointment not found")));
     }
 
-    // ---------- Create ----------
-    @PostMapping("/create")
+    // ---------- Create (POST /api/schedule) ----------
+    @PostMapping("")
     public ResponseEntity<?> createAppointment(@RequestBody AppointmentRequest req) {
         try {
             if (req.patientId() == null) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("success", false, "error", "Missing patient ID"));
+            }
+            if (req.providerId() == null) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "error", "Missing provider ID"));
             }
 
             Provider provider = providerRepository.findById(req.providerId())

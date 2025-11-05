@@ -1,5 +1,8 @@
-/* ---------- app.css ---------- */
-/* --- Global base styles --- */
+/* =========================================================
+   app.css — Unified Layout + Design System
+   ========================================================= */
+
+/* ---------- Imports ---------- */
 @import url('layout.css');
 @import url('calendar.css');
 @import url('patient-search.css');
@@ -13,7 +16,7 @@
   --color-bg: #ecf2f9;
   --color-surface: #ffffff;
   --color-surface-light: #f5f8fc;
-  --color-accent: #3a6ea5;          /* 💙 steel blue */
+  --color-accent: #3a6ea5;
   --color-accent-hover: #305c8a;
   --color-accent-dark: #1e2f46;
   --color-accent-light: #a8c1e6;
@@ -26,21 +29,107 @@
   --transition: all 0.2s ease;
 }
 
-
-
-/* Base Typography & Page */
-body {
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  font-family: "Inter", "Segoe UI", sans-serif;
+/* ---------- Global Resets ---------- */
+html, body {
+  height: 100%;
   margin: 0;
   padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: "Inter", "Segoe UI", sans-serif;
 }
+
+/* =========================================================
+   LAYOUT STRUCTURE
+   ========================================================= */
+
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ----- Sidebar ----- */
+#sidebar {
+  flex: 0 0 220px;
+  background: #1E2A44;
+  color: #e9edf5;
+  padding: 1.25rem;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  border-right: 3px solid var(--color-accent);
+}
+
+#sidebar h2 {
+  text-align: center;
+  color: var(--color-accent);
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+#sidebar button,
+#sidebar a[data-nav] {
+  display: block;
+  width: 100%;
+  background: var(--color-accent);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  transition: var(--transition);
+  text-decoration: none;
+}
+
+#sidebar button:hover,
+#sidebar a[data-nav]:hover {
+  background: var(--color-accent-hover);
+  box-shadow: 0 0 8px var(--color-accent-light);
+  transform: translateY(-1px);
+}
+
+/* ----- Main View Container ----- */
+#app-root {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1.5rem;
+  background: var(--color-bg);
+  box-sizing: border-box;
+}
+
+#view-loading {
+  display: none;
+}
+
+/* Active fragment views (scheduler, patient, etc.) */
+.view {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.view.hidden {
+  display: none !important;
+}
+
+/* =========================================================
+   GLOBAL UI ELEMENTS
+   ========================================================= */
 
 /* Buttons */
 button {
   background-color: var(--color-accent);
-  color: white;
+  color: #fff;
   border: none;
   border-radius: 8px;
   padding: 0.5rem 1rem;
@@ -67,7 +156,7 @@ button.cancel-btn:hover,
   background-color: var(--color-surface);
 }
 
-/* Inputs and selects */
+/* Form Inputs */
 input, select {
   width: 100%;
   padding: 0.5rem;
@@ -78,25 +167,13 @@ input, select {
   outline: none;
   transition: var(--transition);
 }
-.delete-btn {
-  background: #c0392b;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.delete-btn:hover {
-  background: #e74c3c;
-}
-
 
 input:focus, select:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 4px var(--color-accent-light);
 }
 
-/* Form fields */
+/* Field groups */
 .field-group label {
   font-size: 0.85rem;
   color: var(--color-muted);
@@ -104,23 +181,67 @@ input:focus, select:focus {
   display: block;
 }
 
-.field-group.has-error input,
-.field-group.has-error select {
-  border-color: var(--color-danger);
-}
+/* =========================================================
+   CALENDAR LAYOUT SUPPORT
+   ========================================================= */
 
-.field-group.has-ok input,
-.field-group.has-ok select {
-  border-color: var(--color-success);
-}
-
-/* Context / Modals */
-.modal-content {
-  background-color: var(--color-surface);
-  color: var(--color-text);
+#calendar {
+  flex: 1 1 auto;
+  background-color: #E6EEFF;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
+  padding: 1rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  height: 100%;
+  min-height: 80vh;
+}
+
+/* Ensure FullCalendar fills container */
+.fc {
+  height: 100%;
+  width: 100%;
+}
+
+/* =========================================================
+   MODALS
+   ========================================================= */
+.modal-wrapper {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.modal-window {
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
   padding: 1.25rem;
+  width: 95%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+/* =========================================================
+   UTILITIES
+   ========================================================= */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
 }
 
 .context-bar {
@@ -131,15 +252,15 @@ input:focus, select:focus {
   font-size: 0.9rem;
 }
 
-/**Button Size*/
-button {
-  width: auto;
-  max-width: 200px;
+.delete-btn {
+  background: #c0392b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
+.delete-btn:hover {
+  background: #e74c3c;
 }
-

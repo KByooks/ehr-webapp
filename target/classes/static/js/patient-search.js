@@ -1,70 +1,117 @@
+// ============================================
+// patient-search.js
+// ViewManager-integrated Patient Search
+// - Reads prefill from sessionStorage (ehr_prefillPatient)
+// - Double-click row selects patient and returns to Scheduler
+// ============================================
+
 window.PatientSearch = (function () {
-  const PAGE_SIZE = 20;
-  let currentPage = 0, currentSortBy = "lastName", currentSortDir = "asc";
-  
-  // detect if we're currently assigning a patient from appointment modal
-  function cameFromScheduler() {
-    try {
-      return sessionStorage.getItem("ehr_returnExpect") === "true";
-    } catch {
-      return false;
-    }
+  function init() {
+    bind();
+    prefillFromSession();
+    performSearch(); // initial load (with or without prefill)
   }
 
-  
+  function bind() {
+    document.getElementById("search-btn")?.addEventListener("click", performSearch);
+
+    // Enter-to-search
+    document.getElementById("patient-search-filters")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        performSearch();
+      }
+    });
+  }
+
+  function prefillFromSession() {
+    try {
+      const raw = sessionStorage.getItem("ehr_prefillPatient");
+      if (!raw) return;
+      const { first, last } = JSON.parse(raw);
+      const fn = document.getElementById("filter-firstName");
+      const ln = document.getElementById("filter-lastName");
+      if (fn) fn.value = first || "";
+      if (ln) ln.value = last || "";
+      // keep it for back/forward until selection or manual clear
+    } catch {}
+  }
 
   async function performSearch() {
+    const fn = document.getElementById("filter-firstName")?.value?.trim() || "";
+    const ln = document.getElementById("filter-lastName")?.value?.trim() || "";
+    const dob = document.getElementById("filter-dob")?.value?.trim() || "";
+    const phone = document.getElementById("filter-phone")?.value?.trim() || "";
+    const email = document.getElementById("filter-email")?.value?.trim() || "";
+    const city = document.getElementById("filter-city")?.value?.trim() || "";
+    const state = document.getElementById("filter-state")?.value?.trim() || "";
+    const zip = document.getElementById("filter-zip")?.value?.trim() || "";
+
     const params = new URLSearchParams({
-      firstName: document.getElementById("filter-firstName")?.value || "",
-      lastName: document.getElementById("filter-lastName")?.value || "",
-      page: currentPage, size: PAGE_SIZE,
-      sortBy: currentSortBy, sortDir: currentSortDir,
+      firstName: fn, lastName: ln, dob, phone, email, city, state, zip, size: 20
     });
 
     const tbody = document.querySelector("#patient-results tbody");
-    const res = await fetch(`/api/patients/search?${params}`);
-    const data = await res.json();
-    const pts = data.patients || [];
-    tbody.innerHTML = "";
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="p-2">Searching…</td></tr>`;
 
-    if (!pts.length) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">No results found</td></tr>`;
+    try {
+      const res = await fetch(`/api/patients/search?${params.toString()}`);
+      const data = await res.json();
+      renderRows(data.patients || []);
+    } catch (err) {
+      console.error("Patient search failed:", err);
+      if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="p-2 text-red-700">Search failed.</td></tr>`;
+    }
+  }
+
+  function renderRows(list) {
+    const tbody = document.querySelector("#patient-results tbody");
+    if (!tbody) return;
+
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="9" class="p-2 text-gray-600">No matches.</td></tr>`;
       return;
     }
 
-    pts.forEach((p) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${p.firstName}</td><td>${p.lastName}</td><td>${p.dob}</td>
-        <td>${p.phone}</td><td>${p.address}</td><td>${p.city}</td>
-        <td>${p.state}</td><td>${p.zip}</td><td>${p.email}</td>`;
-      row.addEventListener("dblclick", () => onPatientSelect(p));
-      tbody.appendChild(row);
+    tbody.innerHTML = "";
+    list.forEach((p) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.firstName || ""}</td>
+        <td>${p.lastName || ""}</td>
+        <td>${p.dob || ""}</td>
+        <td>${p.phone ?? p.phonePrimary ?? ""}</td>
+        <td>${p.address ?? p.addressLine1 ?? ""}</td>
+        <td>${p.city || ""}</td>
+        <td>${p.state || ""}</td>
+        <td>${p.zip || ""}</td>
+        <td>${p.email || ""}</td>
+      `;
+
+      tr.ondblclick = () => selectPatient(p);
+      tbody.appendChild(tr);
     });
   }
 
-  async function onPatientSelect(p) {
-    const assigning = cameFromScheduler();
+  function selectPatient(p) {
+    const expect = sessionStorage.getItem("ehr_returnExpect") === "true";
+    const active = sessionStorage.getItem("ehr_returnActive");
 
-    if (assigning) {
-      console.log("🔗 Assigning patient to appointment:", p);
-      sessionStorage.setItem("ehr_selectedPatient", JSON.stringify(p));
-      sessionStorage.setItem("ehr_returnExpect", "false"); // consume the flag
+    // Save selection for modal reopen
+    sessionStorage.setItem("ehr_selectedPatient", JSON.stringify({
+      id: p.id, firstName: p.firstName, lastName: p.lastName
+    }));
 
-      // go back to scheduler and reopen modal
-      setTimeout(() => loadSection("scheduler"), 150);
+    // Clear prefill (we've chosen)
+    sessionStorage.removeItem("ehr_prefillPatient");
+
+    if (expect && active) {
+      // Go back to Scheduler (app.js → view:shown → handleReturnFromPatientSearch)
+      ViewManager.loadView("scheduler", "/fragments/scheduler");
     } else {
-      // Normal standalone search (not assigning)
-      console.log("🧭 Future: open demographics for", p.firstName, p.lastName);
+      // Future path: open demographics view
+      console.log("Non-modal selection path — open demographics for", p);
     }
-  }
-
-
-  function init(params = {}) {
-    document.getElementById("search-btn").onclick = performSearch;
-    if (params.firstName) document.getElementById("filter-firstName").value = params.firstName;
-    if (params.lastName) document.getElementById("filter-lastName").value = params.lastName;
-    if (params.firstName || params.lastName) performSearch();
   }
 
   return { init, performSearch };

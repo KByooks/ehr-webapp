@@ -1,30 +1,61 @@
+// ============================================
 // modal-manager.js
-window.ModalManager = (function () {
-  const container = document.getElementById("global-modal-container");
+// Global modal controller (singleton)
+// ============================================
 
-  function show(htmlContent) {
-    hide(); // ensure only one modal at a time
-    const wrapper = document.createElement("div");
-    wrapper.className = "modal";
-    wrapper.innerHTML = `
-      <div class="modal-overlay"></div>
-      <div class="modal-content">${htmlContent}</div>
-    `;
-    container.appendChild(wrapper);
-    wrapper.querySelector(".modal-overlay").addEventListener("click", hide);
-    document.addEventListener("keydown", escHandler);
-    document.body.classList.add("modal-open");
+(function () {
+  const MODAL_CONTAINER_ID = "global-modal-container";
+  const container = document.getElementById(MODAL_CONTAINER_ID);
+
+  if (!container) {
+    console.error(`❌ ModalManager: Missing #${MODAL_CONTAINER_ID} in app.html`);
+    window.ModalManager = {
+      show: () => console.warn("⚠️ ModalManager.show() called but container missing."),
+      hide: () => {},
+      isOpen: () => false,
+    };
+    return;
   }
 
-  function hide() {
-    container.innerHTML = "";
-    document.body.classList.remove("modal-open");
-    document.removeEventListener("keydown", escHandler);
-  }
+  let currentModal = null;
 
-  function escHandler(e) {
-    if (e.key === "Escape") hide();
-  }
+  const ModalManager = {
+    show(html) {
+      this.hide(); // enforce single modal
 
-  return { show, hide };
+      const wrapper = document.createElement("div");
+      wrapper.className = "modal-wrapper visible";
+      wrapper.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal-window">${html}</div>
+      `;
+
+      container.appendChild(wrapper);
+      currentModal = wrapper;
+
+      // dismiss on backdrop click
+      wrapper.querySelector(".modal-backdrop")
+        .addEventListener("click", () => this.hide());
+
+      document.body.classList.add("modal-open");
+
+      // ✅ let scripts know the modal is ready in DOM
+      document.dispatchEvent(new CustomEvent("modal:shown"));
+    },
+
+    hide() {
+      if (currentModal) {
+        currentModal.remove();
+        currentModal = null;
+        document.body.classList.remove("modal-open");
+      }
+    },
+
+    isOpen() {
+      return !!currentModal;
+    },
+  };
+
+  window.ModalManager = ModalManager;
+  console.log("✅ ModalManager initialized");
 })();
