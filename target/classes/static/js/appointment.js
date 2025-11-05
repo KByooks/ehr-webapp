@@ -1,370 +1,347 @@
 // ============================================
 // appointment.js
-// Appointment modal logic using ModalManager
-// Includes inline patient search + CRUD (create, update, delete)
+// Appointment modal flow with seamless
+// patient handoff + central data sync
 // ============================================
 
-window.AppointmentModal = (function () {
-  let currentProviderId = null;
-  let currentStartISO = null;
+window.AppointmentModal = (function() {
+	let appointmentButtonsBound = false;
 
-  // ---------- Time helpers ----------
-  const pad2 = (n) => String(n).padStart(2, "0");
-  const parseHHMM = (v) => {
-    if (!v) return null;
-    const [h, m] = v.split(":").map(Number);
-    return isNaN(h) || isNaN(m) ? null : { h, m };
-  };
-  const addMinutes = (hhmm, minutes) => {
-    const t = parseHHMM(hhmm);
-    if (!t) return null;
-    const total = t.h * 60 + t.m + (Number(minutes) || 0);
-    return `${pad2(Math.floor(total / 60) % 24)}:${pad2(total % 60)}`;
-  };
+	// ---------- helpers ----------
+	const pad2 = (n) => String(n).padStart(2, "0");
+	const parseHHMM = (v) => {
+		if (!v) return null;
+		const [h, m] = v.split(":").map(Number);
+		return isNaN(h) || isNaN(m) ? null : { h, m };
+	};
+	const addMinutes = (hhmm, minutes) => {
+		const t = parseHHMM(hhmm);
+		if (!t) return null;
+		const total = t.h * 60 + t.m + (Number(minutes) || 0);
+		return `${pad2(Math.floor(total / 60) % 24)}:${pad2(total % 60)}`;
+	};
+	const setVal = (sel, val) => {
+		const el = document.querySelector(sel);
+		if (el && val != null) el.value = val;
+	};
+	const getCsrfHeaders = () => {
+		const token = document.querySelector('meta[name="_csrf"]')?.content;
+		const header =
+			document.querySelector('meta[name="_csrf_header"]')?.content ||
+			"X-CSRF-TOKEN";
+		return token ? { [header]: token } : {};
+	};
 
-  // ---------- Inline patient suggest helpers ----------
-  function parseNameQuery(raw) {
-    const parts = raw.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return { firstName: "", lastName: "" };
-    if (parts.length === 1) return { firstName: parts[0], lastName: "" };
-    return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
-  }
+	// ---------- delegated submit (once) ----------
+	function bindAppointmentModalButtons() {
 
-  let activeSuggestAbort = null;
-  async function fetchCandidates(firstName, lastName, limit = 6) {
-    try {
-      if (activeSuggestAbort) activeSuggestAbort.abort();
-      activeSuggestAbort = new AbortController();
+		if (appointmentButtonsBound) return;
+		appointmentButtonsBound = true;
 
-      const params = new URLSearchParams({
-        firstName: firstName || "",
-        lastName: lastName || "",
-        page: 0,
-        size: limit,
-        sortBy: "lastName",
-        sortDir: "asc",
-      });
+		document.addEventListener(
+			"submit",
+			(e) => {
+				const form = e.target;
+				if (form && form.id === "appointment-form") {
+					e.preventDefault();
+					onSubmit(form).catch((err) => console.error("Submit error:", err));
+				}
+			},
+			true
+		);
 
-      const r = await fetch(`/api/patients/search?${params.toString()}`, {
-        signal: activeSuggestAbort.signal,
-      });
-      if (!r.ok) return [];
-      const data = await r.json();
-      return data.patients || [];
-    } catch {
-      return [];
-    }
-  }
+		document.addEventListener("click", (e) => {
+			const btn = e.target.closest(".save-btn");
+			if (!btn) return;
+			const form = btn.closest("form#appointment-form");
+			if (!form) return;
+			e.preventDefault();
+			form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+		});
 
-  function renderSuggestions(dropdown, list) {
-    if (!dropdown) return;
-    if (!list || list.length === 0 || list.length > 5) {
-      dropdown.classList.add("hidden");
-      dropdown.innerHTML = "";
-      return;
-    }
-    dropdown.innerHTML = list
-      .map((p) => {
-        const fn = p.firstName || "";
-        const ln = p.lastName || "";
-        const dob = p.dob ? ` • ${p.dob}` : "";
-        return `<div class="suggestion-item" data-id="${p.id}" data-fn="${fn}" data-ln="${ln}">
-                  <span class="suggestion-name">${fn} ${ln}</span>
-                  <span class="suggestion-meta">${dob}</span>
-                </div>`;
-      })
-      .join("");
-    dropdown.classList.remove("hidden");
-  }
+		// ✅ NEW: Delegated delete button binding (always works)
+		document.addEventListener("click", (e) => {
+			const del = e.target.closest("#delete-appointment");
+			if (!del) return;
+			e.preventDefault();
+			console.log("🗑️ Delete button clicked");
+			onDelete();
+		});
 
-  function attachPatientSuggest(root) {
-    const input = root.querySelector("#patientName");
-    const dropdown = root.querySelector("#patient-suggest");
-    if (!input || !dropdown) return;
+		// ✅ Delegated cancel binding (always works)
+		document.addEventListener("click", (e) => {
+			const cancel = e.target.closest("#cancel-appointment");
+			if (!cancel) return;
+			e.preventDefault();
+			onCancel();
+		});
 
-    let debounceTimer = null;
-    let lastKey = "";
+	}
 
-    function lockSelection(p) {
-      input.value = `${p.firstName || ""} ${p.lastName || ""}`.trim();
-      input.dataset.patientId = p.id;
-      renderSuggestions(dropdown, []);
-      console.log("✅ Patient locked from suggestions:", p);
-    }
+	// ---------- OPEN ----------
+	async function open(providerId, startISO, appt = null) {
+		window.CurrentAppointmentData.reset();
+		window.CurrentAppointmentData.setFromAppointment({
+			providerId,
+			...appt,
+			date: appt?.date || startISO.split("T")[0],
+			timeStart: appt?.timeStart || startISO.split("T")[1]?.slice(0, 5),
+			timeEnd: appt?.timeEnd || addMinutes(startISO.split("T")[1]?.slice(0, 5), 15),
+		});
 
-    dropdown.addEventListener("click", (e) => {
-      const item = e.target.closest(".suggestion-item");
-      if (!item) return;
-      lockSelection({
-        id: item.dataset.id,
-        firstName: item.dataset.fn,
-        lastName: item.dataset.ln,
-      });
-    });
+		const resp = await fetch("/fragments/appointment-details", {
+			headers: { "X-Requested-With": "fetch" },
+		});
+		if (!resp.ok) {
+			console.error("❌ Failed to load appointment-details fragment", resp.status);
+			return;
+		}
 
-    // Live suggestions (debounced)
-    input.addEventListener("input", () => {
-      delete input.dataset.patientId; // typing invalidates previous selection
-      const raw = input.value;
-      const { firstName, lastName } = parseNameQuery(raw);
-      if (!firstName && !lastName) {
-        renderSuggestions(dropdown, []);
-        return;
-      }
+		const html = await resp.text();
+		const tmp = document.createElement("div");
+		tmp.innerHTML = html.trim();
+		const inner = tmp.querySelector("#appointment-modal > .modal-content");
+		const contentHTML = inner ? inner.innerHTML : html;
 
-      const key = `${firstName}|${lastName}`;
-      if (key === lastKey) return;
-      lastKey = key;
+		window.ModalManager.show(contentHTML);
 
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(async () => {
-        const list = await fetchCandidates(firstName, lastName, 6);
-        renderSuggestions(dropdown, list);
-      }, 220);
-    });
+		const tryBind = setInterval(() => {
+			const form = document.querySelector("#appointment-form");
+			if (form) {
+				clearInterval(tryBind);
+				initBindings();
+			}
+		}, 50);
 
-    // Enter/Tab → lock 1 result or jump to full search
-    input.addEventListener("keydown", async (e) => {
-      if (e.key !== "Enter" && e.key !== "Tab") return;
+		bindAppointmentModalButtons();
+	}
 
-      const raw = input.value.trim();
-      if (!raw) return;
-      const { firstName, lastName } = parseNameQuery(raw);
-      const list = await fetchCandidates(firstName, lastName, 6);
+	// ---------- INIT BINDINGS ----------
+	function initBindings() {
+		const form = document.querySelector("#appointment-form");
+		if (!form) return console.error("❌ Appointment form not found");
 
-      if (list.length === 1) {
-        lockSelection(list[0]);
-      } else {
-        // mark context so calendar reopens modal after double-click selection
-        try {
-          sessionStorage.setItem("ehr_returnActive", JSON.stringify({
-            providerId: currentProviderId,
-            startISO: currentStartISO
-          }));
-          sessionStorage.setItem("ehr_returnExpect", "true");
-        } catch {}
-        if (window.ModalManager?.hide) window.ModalManager.hide();
+		console.log("✅ appointment-form found, binding context");
+		const data = window.CurrentAppointmentData.getAll();
 
-        if (typeof loadSection === "function") {
-          loadSection("patient");
-          // prefill filters after fragment injects
-          setTimeout(() => {
-            const fnEl = document.getElementById("filter-firstName");
-            const lnEl = document.getElementById("filter-lastName");
-            if (fnEl) fnEl.value = firstName || "";
-            if (lnEl) lnEl.value = lastName || "";
-            if (window.PatientSearch?.performSearch) window.PatientSearch.performSearch();
-          }, 350);
-        } else {
-          const params = new URLSearchParams({ firstName, lastName });
-          window.location.href = `/fragments/patient?${params.toString()}`;
-        }
-      }
-    });
-  }
+		// ✅ Ensure the appointment ID always propagates correctly
+		const id = data.appointmentId || data.id;
+		if (id) {
+			form.dataset.appointmentId = String(id);
+			console.log("🧾 Bound appointment ID:", form.dataset.appointmentId);
+			window.CurrentAppointmentData.updateField("appointmentId", id);
+		}
+		const deleteBtn = document.getElementById("delete-appointment");
+		if (deleteBtn) {
+			if (id) deleteBtn.classList.remove("hidden");
+			else deleteBtn.classList.add("hidden");
+		}
+		setVal("#providerId", data.providerId);
+		setVal("#date", data.date);
+		setVal("#timeStart", data.timeStart);
+		setVal("#timeEnd", data.timeEnd);
+		setVal("#duration", data.durationMinutes);
+		setVal("#reason", data.reason);
+		setVal("#appointmentType", data.appointmentType);
+		setVal("#status", data.status);
 
-  // ---------- Modal lifecycle ----------
-  async function open(providerId, startISO) {
-    currentProviderId = providerId;
-    currentStartISO = startISO;
+		const pn = document.querySelector("#patientName");
+		if (pn && data.patient) {
+			pn.value = `${data.patient.firstName} ${data.patient.lastName}`;
+			pn.dataset.patientId = data.patient.id ?? data.patientId ?? "";
+		}
 
-    console.log("🗓 Opening appointment modal for provider", providerId, "at", startISO);
+		attachPatientSuggest(document);
+	}
 
-    // Clear any existing modal safely
-    if (window.ModalManager?.hide) window.ModalManager.hide();
+	// ---------- SAVE ----------
+	async function onSubmit(form) {
+		console.log("🚀 onSubmit triggered");
+		const data = window.CurrentAppointmentData.getAll();
+		const apptId = form.dataset.appointmentId || data.appointmentId || null;
+		const isUpdate = !!apptId;
 
-    // Load the appointment-details fragment
-    const resp = await fetch("/fragments/appointment-details");
-    if (!resp.ok) {
-      console.error("Failed to fetch appointment-details fragment");
-      return;
-    }
-    const html = await resp.text();
+		const patientInput = form.querySelector("#patientName");
+		const patientId = Number(patientInput?.dataset?.patientId);
+		if (!patientId) {
+			alert("Select a patient first.");
+			return;
+		}
+		data.patientId = patientId;
 
-    const temp = document.createElement("div");
-    temp.innerHTML = html.trim();
-    const modalInner = temp.querySelector("#appointment-modal > .modal-content");
-    const contentHTML = modalInner ? modalInner.innerHTML : html;
+		console.log("💾 Sending payload →", data);
 
-    // Render modal
-    window.ModalManager.show(contentHTML);
+		const url = isUpdate ? `/api/schedule/${apptId}` : "/api/schedule";
+		const method = isUpdate ? "PUT" : "POST";
 
-    const container = document.querySelector(".modal-content");
-    const form = container?.querySelector("#appointment-form");
-    if (!form) {
-      console.error("Appointment form not found!");
-      return;
-    }
+		try {
+			const res = await fetch(url, {
+				method,
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json",
+					...getCsrfHeaders(),
+				},
+				body: JSON.stringify({
+					appointmentId: data.appointmentId ?? null,
+					providerId: data.providerId,
+					patientId: data.patientId,
+					date: data.date,
+					timeStart: data.timeStart,
+					timeEnd: data.timeEnd,
+					durationMinutes: data.durationMinutes,
+					reason: data.reason,
+					appointmentType: data.appointmentType,
+					status: data.status,
+				}),
+			});
+			const bodyText = await res.text();
+			let json = {};
+			try {
+				json = JSON.parse(bodyText);
+			} catch { }
 
-    // Reset edit state / delete button
-    form.querySelector("#delete-appointment")?.remove();
-    delete form.dataset.appointmentId;
-    const hiddenId = container.querySelector("#appointmentId");
-    if (hiddenId) hiddenId.value = "";
+			console.log("📡 Server response:", res.status, json || bodyText);
 
-    // Fill provider + date/time
-    const dt = new Date(startISO);
-    container.querySelector("#ctx-provider").textContent = `Provider #${providerId}`;
-    container.querySelector("#date").value = dt.toISOString().split("T")[0];
-    const hh = pad2(dt.getHours());
-    const mm = pad2(dt.getMinutes());
-    container.querySelector("#timeStart").value = `${hh}:${mm}`;
-    container.querySelector("#timeEnd").value = addMinutes(`${hh}:${mm}`, 15);
+			if (!res.ok) {
+				alert(`Save failed (${res.status}): ${json.error || bodyText}`);
+				return;
+			}
 
-    // Prefill patient if returning
-    try {
-      const stored = sessionStorage.getItem("ehr_selectedPatient");
-      if (stored) {
-        const maybeP = JSON.parse(stored);
-        const input = container.querySelector("#patientName");
-        if (maybeP && input) {
-          input.value = `${maybeP.firstName} ${maybeP.lastName}`.trim();
-          input.dataset.patientId = maybeP.id;
-        }
-      }
-    } catch {}
+			if (json.success) {
+				window.ModalManager.hide();
+				window.currentCalendar?.refetchEvents?.();
+				window.CurrentAppointmentData.reset();
+			} else {
+				alert("Save did not succeed. Check console for details.");
+			}
+		} catch (err) {
+			console.error("🔥 Save error:", err);
+			alert("Network error while saving appointment.");
+		}
+	}
 
-    // Attach suggest
-    attachPatientSuggest(container);
+	// ---------- CANCEL ----------
+	function onCancel() {
+		window.ModalManager.hide();
+		sessionStorage.removeItem("ehr_returnExpect");
+		window.CurrentAppointmentData.reset();
+	}
 
-    // Bind save + cancel
-    form.onsubmit = onSubmit;
-	const cancelBtn = container.querySelector("#cancel-appointment");
-	if (cancelBtn) {
-	  cancelBtn.onclick = () => {
-	    console.log("❌ Appointment creation/edit canceled");
-	    window.ModalManager.hide();
+	async function onDelete() {
+		const id = window.CurrentAppointmentData.get("appointmentId");
+		if (!id) return alert("No appointment to delete.");
 
-	    // 🧹 Clear any lingering context so the modal doesn't reopen later
-	    try {
-	      sessionStorage.removeItem("ehr_activeAppointment");
-	      sessionStorage.removeItem("ehr_selectedPatient");
-	      sessionStorage.removeItem("ehr_returnExpect");
-	      sessionStorage.removeItem("ehr_returnActive");
-	      sessionStorage.removeItem("ehr_justAssigned");
-	    } catch (e) {
-	      console.warn("Failed to clear session context:", e);
-	    }
+		if (!confirm("Are you sure you want to delete this appointment?")) return;
 
-	    if (window.EHRContext?.clearAppointmentContext) {
-	      window.EHRContext.clearAppointmentContext();
-	    }
+		try {
+			const res = await fetch(`/api/schedule/${id}`, {
+				method: "DELETE",
+				headers: { Accept: "application/json", ...getCsrfHeaders() },
+			});
 
-	    window.lastLoadedAppointmentId = null;
-	  };
+			const json = await res.json();
+
+			if (!res.ok || !json.success) {
+				alert(`Delete failed: ${json.error || res.statusText}`);
+				return;
+			}
+
+			window.ModalManager.hide();
+			window.currentCalendar?.refetchEvents?.();
+			window.CurrentAppointmentData.reset();
+			alert("Appointment deleted successfully.");
+		} catch (err) {
+			console.error("🔥 Delete error:", err);
+			alert("Network error while deleting appointment.");
+		}
 	}
 
 
-    // If calendar told us we're editing an existing appointment, attach delete + mark id
-    if (window.lastLoadedAppointmentId) {
-      form.dataset.appointmentId = String(window.lastLoadedAppointmentId);
-      if (hiddenId) hiddenId.value = String(window.lastLoadedAppointmentId);
+	// ---------- Inline patient search + handoff ----------
+	function attachPatientSuggest(root) {
+		const input = root.querySelector("#patientName");
+		const dropdown = root.querySelector("#patient-suggest");
+		if (!input || !dropdown) return;
 
-      let delBtn = document.createElement("button");
-      delBtn.type = "button";
-      delBtn.id = "delete-appointment";
-      delBtn.className = "delete-btn";
-      delBtn.textContent = "Delete";
-      delBtn.style.marginRight = "auto";
-      form.querySelector(".form-actions").prepend(delBtn);
+		const showDD = () => dropdown.classList.remove("hidden");
+		const hideDD = () => {
+			dropdown.classList.add("hidden");
+			dropdown.innerHTML = "";
+		};
 
-      delBtn.addEventListener("click", onDelete);
-    }
-  }
+		let timer = null;
+		input.addEventListener("input", () => {
+			clearTimeout(timer);
+			const query = input.value.trim();
+			if (!query) return hideDD();
+			timer = setTimeout(async () => {
+				const [first, last] = query.split(/\s+/, 2);
+				const params = new URLSearchParams({
+					firstName: first || "",
+					lastName: last || "",
+					size: 6,
+				});
+				const res = await fetch(`/api/patients/search?${params}`);
+				const data = await res.json();
+				const list = data.patients || [];
+				if (!list.length) return hideDD();
 
-  // ---------- Delete handler ----------
-  async function onDelete() {
-    const form = document.querySelector("#appointment-form");
-    const targetId = form?.dataset?.appointmentId || document.querySelector("#appointmentId")?.value;
-    if (!targetId) {
-      alert("No appointment selected to delete.");
-      return;
-    }
-    if (!confirm("Are you sure you want to delete this appointment?")) return;
+				dropdown.innerHTML = list
+					.map(
+						(p) =>
+							`<div class="suggestion-item" data-id="${p.id}" data-name="${p.firstName} ${p.lastName}">
+               ${p.firstName} ${p.lastName}
+             </div>`
+					)
+					.join("");
+				showDD();
+			}, 150);
+		});
 
-    try {
-      const res = await fetch(`/api/schedule/${targetId}`, { method: "DELETE" });
-      const result = await res.json();
-      if (result.success) {
-        console.log(`🗑️ Deleted appointment ${targetId}`);
-        if (window.ModalManager?.hide) window.ModalManager.hide();
-        window.lastLoadedAppointmentId = null;
-        window.currentCalendar?.refetchEvents?.();
-      } else {
-        alert(result.error || "Failed to delete appointment.");
-      }
-    } catch (err) {
-      console.error("Error deleting appointment:", err);
-      alert("Error deleting appointment.");
-    }
-  }
+		dropdown.addEventListener("click", (e) => {
+			const item = e.target.closest(".suggestion-item");
+			if (!item) return;
+			input.value = item.dataset.name;
+			input.dataset.patientId = item.dataset.id;
+			hideDD();
+		});
 
-  // ---------- Save handler (create or update) ----------
-  async function onSubmit(e) {
-    e.preventDefault();
-    const form = e.currentTarget;
+		input.addEventListener("keydown", async (e) => {
+			if (e.key !== "Enter" && e.key !== "Tab") return;
+			e.preventDefault();
 
-    // Determine edit vs create
-    const apptId = form.dataset.appointmentId || document.querySelector("#appointmentId")?.value || null;
-    const isUpdate = !!apptId;
+			const query = input.value.trim();
+			const [first, last] = query.split(/\s+/, 2);
+			const res = await fetch(
+				`/api/patients/search?firstName=${encodeURIComponent(first || "")}&lastName=${encodeURIComponent(last || "")}&size=6`
+			);
+			const data = await res.json();
+			const list = data.patients || [];
 
-    let patientId = form.querySelector("#patientName")?.dataset?.patientId || null;
-    if (!patientId) {
-      // fallback to session if user came from search
-      try {
-        const stored = sessionStorage.getItem("ehr_selectedPatient");
-        if (stored) {
-          const p = JSON.parse(stored);
-          if (p?.id) patientId = p.id;
-        }
-      } catch {}
-    }
+			if (list.length === 1) {
+				const p = list[0];
+				input.value = `${p.firstName} ${p.lastName}`;
+				input.dataset.patientId = p.id;
+				window.CurrentAppointmentData.updateField("patient", p);
+				window.CurrentAppointmentData.updateField("patientId", p.id);
+				return;
+			}
 
-    if (!patientId) {
-      alert("Please select or confirm a patient first.");
-      return;
-    }
+			sessionStorage.setItem(
+				"ehr_returnActive",
+				JSON.stringify(window.CurrentAppointmentData.getAll())
+			);
+			sessionStorage.setItem("ehr_returnExpect", "true");
+			sessionStorage.setItem(
+				"ehr_prefillPatient",
+				JSON.stringify({ first: first || "", last: last || "" })
+			);
 
-    const payload = {
-      providerId: currentProviderId,
-      patientId,
-      appointmentType: form.appointmentType.value,
-      reason: form.reason.value,
-      status: form.status.value,
-      date: form.date.value,
-      timeStart: form.timeStart.value + ":00",
-      timeEnd: form.timeEnd.value + ":00",
-      durationMinutes: parseInt(form.duration.value, 10),
-    };
+			await ViewManager.loadView("patient", "/fragments/patient");
+			window.ModalManager.hide();
+		});
+	}
 
-    console.log(`💾 ${isUpdate ? "Updating" : "Saving"} appointment payload:`, payload);
-
-    try {
-      const url = isUpdate ? `/api/schedule/${apptId}` : "/api/schedule/create";
-      const method = isUpdate ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const result = await res.json();
-
-      if (result.success) {
-        console.log(`✅ Appointment ${isUpdate ? "updated" : "created"}:`, result);
-        // clear only the temp flags—don’t nuke general session usage
-        sessionStorage.removeItem("ehr_returnActive");
-        sessionStorage.removeItem("ehr_returnExpect");
-        if (window.ModalManager?.hide) window.ModalManager.hide();
-        window.lastLoadedAppointmentId = null;
-        window.currentCalendar?.refetchEvents?.();
-      } else {
-        alert(result.error || "Error saving appointment.");
-      }
-    } catch (err) {
-      console.error("Error saving appointment:", err);
-      alert("Error saving appointment.");
-    }
-  }
-
-  return { open };
+	return { open };
 })();

@@ -26,7 +26,8 @@ function initSchedulerCalendar(providerId) {
       right: 'dayGridMonth,timeGridWeek,timeGridDay'
     },
     events: function(fetchInfo, successCallback, failureCallback) {
-      fetch(`/api/schedule/${providerId}`)
+      fetch(`/api/schedule/provider/${providerId}
+`)
         .then(res => res.json())
         .then(data => successCallback(data))
         .catch(err => failureCallback(err));

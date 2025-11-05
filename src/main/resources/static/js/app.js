@@ -1,54 +1,116 @@
 // ============================================
 // app.js
-// Central app boot + single source of truth for navigation
+// Central app boot + persistent navigation using ViewManager
 // ============================================
 
-// Expose a single global loadSection that proxies to FragmentLoader.
-// Accepts optional params object (e.g., { firstName, lastName }).
-window.loadSection = function loadSection(sectionName, params = {}) {
-  return window.FragmentLoader.load(sectionName, params);
+// ✅ Core navigation helper — universal load function
+window.loadSection = async function loadSection(sectionName, force = false) {
+  const url = `/fragments/${sectionName}`;
+  await window.ViewManager.loadView(sectionName, url, { force });
 };
 
-// Default section on first load
+// ============================================
+// INITIAL BOOT
+// ============================================
+
 window.addEventListener("DOMContentLoaded", () => {
+  // Default section to show on startup
   loadSection("scheduler");
 });
 
-// React to fragment loads and (re)initialize features
-document.addEventListener("fragment:loaded", (e) => {
-  const { section, params } = e.detail || {};
+// ============================================
+// ROUTER — Sidebar navigation (no reloads)
+// ============================================
 
-  switch (section) {
+document.addEventListener("click", (e) => {
+  const link = e.target.closest("[data-nav]");
+  if (!link) return;
+  e.preventDefault();
+
+  const section = link.getAttribute("data-nav");
+  if (!section) return;
+
+  // Update hash (optional, for back/forward buttons)
+  location.hash = section;
+
+  // Load the section dynamically
+  loadSection(section);
+});
+
+// ============================================
+// LIFECYCLE: Initialize sections after load
+// ============================================
+
+document.addEventListener("view:loaded", (e) => {
+  const { name } = e.detail;
+  console.log(`✅ View loaded: ${name}`);
+
+  switch (name) {
+    // Scheduler
     case "scheduler":
       if (typeof window.initSchedulerCalendar === "function") {
         window.initSchedulerCalendar();
       } else {
-        console.warn("initSchedulerCalendar not found.");
+        console.warn("⚠️ initSchedulerCalendar not found.");
       }
       break;
 
+    // Patient Search
     case "patient":
       if (window.PatientSearch?.init) {
-        window.PatientSearch.init(params || {});
+        window.PatientSearch.init();
       } else {
-        console.warn("PatientSearch.init not found.");
+        console.warn("⚠️ PatientSearch.init not found.");
       }
       break;
 
+    // Billing
     case "billing":
       if (window.Billing?.init) window.Billing.init();
       break;
 
+    // Reports
     case "reports":
       if (window.Reports?.init) window.Reports.init();
       break;
 
     default:
-      console.log(`Loaded section: ${section}`);
+      console.log(`ℹ️ Loaded view: ${name}`);
   }
 });
 
-// Utility: Open scheduler in a new popup window
-window.openScheduleInNewWindow = function openScheduleInNewWindow(providerId = 1) {
-  window.open(`/scheduler-popup?providerId=${providerId}`, "_blank", "width=1000,height=700");
-};
+// ============================================
+// OPTIONAL: Re-initialize when cached view re-shown
+// ============================================
+
+document.addEventListener("view:shown", (e) => {
+  const { name } = e.detail;
+  if (name !== "scheduler") return;
+
+  // Re-sync return-from-search flow
+  if (window.handleReturnFromPatientSearch) {
+    window.handleReturnFromPatientSearch();
+  }
+
+  // Ensure FullCalendar is resized correctly after view restore
+  if (window.currentCalendar) {
+    requestAnimationFrame(() => {
+      window.currentCalendar.updateSize();
+    });
+  }
+});
+
+
+// ============================================
+// GLOBAL EVENT BUS (optional tiny pub/sub)
+// ============================================
+
+window.Bus = (() => {
+  const target = document.createElement("span");
+  return {
+    on: (name, fn) => target.addEventListener(name, fn),
+    off: (name, fn) => target.removeEventListener(name, fn),
+    emit: (name, detail) =>
+      target.dispatchEvent(new CustomEvent(name, { detail })),
+  };
+})();
