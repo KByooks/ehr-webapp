@@ -14,6 +14,7 @@ public class FragmentController {
             case "scheduler" -> "fragments/scheduler :: content";
             case "appointment-details" -> "fragments/appointment-details :: content";
             case "patient" -> "fragments/patient :: content";
+            case "provider" -> "fragments/provider :: content";   // ✅ Added this line
             case "billing" -> "fragments/billing :: content";
             case "reports" -> "fragments/reports :: content";
             case "demographics" -> "fragments/demographics :: content";

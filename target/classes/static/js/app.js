@@ -1,116 +1,105 @@
 // ============================================
-// app.js
-// Central app boot + persistent navigation using ViewManager
+// app.js — persistent navigation via ViewManager
 // ============================================
 
-// ✅ Core navigation helper — universal load function
 window.loadSection = async function loadSection(sectionName, force = false) {
   const url = `/fragments/${sectionName}`;
   await window.ViewManager.loadView(sectionName, url, { force });
 };
 
-// ============================================
-// INITIAL BOOT
-// ============================================
+// ---- boot ----
+window.addEventListener("DOMContentLoaded", () => loadSection("scheduler"));
 
-window.addEventListener("DOMContentLoaded", () => {
-  // Default section to show on startup
-  loadSection("scheduler");
-});
-
-// ============================================
-// ROUTER — Sidebar navigation (no reloads)
-// ============================================
-
+// ---- sidebar router ----
 document.addEventListener("click", (e) => {
   const link = e.target.closest("[data-nav]");
   if (!link) return;
   e.preventDefault();
-
   const section = link.getAttribute("data-nav");
-  if (!section) return;
-
-  // Update hash (optional, for back/forward buttons)
-  location.hash = section;
-
-  // Load the section dynamically
-  loadSection(section);
+  if (section) loadSection(section);
 });
 
-// ============================================
-// LIFECYCLE: Initialize sections after load
-// ============================================
-
+// ---- lifecycle handlers ----
 document.addEventListener("view:loaded", (e) => {
   const { name } = e.detail;
-  console.log(`✅ View loaded: ${name}`);
+  console.log("✅ View loaded:", name);
 
   switch (name) {
-    // Scheduler
     case "scheduler":
-      if (typeof window.initSchedulerCalendar === "function") {
+      if (typeof window.initSchedulerCalendar === "function")
         window.initSchedulerCalendar();
-      } else {
-        console.warn("⚠️ initSchedulerCalendar not found.");
-      }
+      handleSchedulerReturnAndSwitch();
       break;
-
-    // Patient Search
     case "patient":
-      if (window.PatientSearch?.init) {
-        window.PatientSearch.init();
-      } else {
-        console.warn("⚠️ PatientSearch.init not found.");
-      }
+      window.PatientSearch?.init?.();
       break;
-
-    // Billing
+    case "provider":
+      window.ProviderSearch?.init?.();
+      break;
     case "billing":
-      if (window.Billing?.init) window.Billing.init();
+      window.Billing?.init?.();
       break;
-
-    // Reports
     case "reports":
-      if (window.Reports?.init) window.Reports.init();
+      window.Reports?.init?.();
       break;
-
-    default:
-      console.log(`ℹ️ Loaded view: ${name}`);
   }
 });
 
-// ============================================
-// OPTIONAL: Re-initialize when cached view re-shown
-// ============================================
-
+// ---- global modal visibility + return logic ----
 document.addEventListener("view:shown", (e) => {
   const { name } = e.detail;
-  if (name !== "scheduler") return;
+  console.log("📺 view:shown →", name);
 
-  // Re-sync return-from-search flow
-  if (window.handleReturnFromPatientSearch) {
-    window.handleReturnFromPatientSearch();
+  // Hide modal when leaving scheduler
+  if (window.ModalManager?.isOpen?.()) {
+    if (name === "scheduler") {
+      window.ModalManager.softShow();
+    } else {
+      window.ModalManager.softHide();
+    }
   }
 
-  // Ensure FullCalendar is resized correctly after view restore
-  if (window.currentCalendar) {
-    requestAnimationFrame(() => {
-      window.currentCalendar.updateSize();
-    });
+  // Handle return to scheduler
+  if (name === "scheduler") {
+    if (typeof window.handleReturnFromPatientSearch === "function")
+      window.handleReturnFromPatientSearch();
+    if (typeof window.handleReturnFromProviderSearch === "function")
+      window.handleReturnFromProviderSearch();
+    if (window.currentCalendar)
+      requestAnimationFrame(() => window.currentCalendar.updateSize());
   }
 });
 
+// ---- scheduler return helper ----
+function handleSchedulerReturnAndSwitch() {
+  try {
+    if (typeof window.handleReturnFromPatientSearch === "function")
+      window.handleReturnFromPatientSearch();
+    if (typeof window.handleReturnFromProviderSearch === "function")
+      window.handleReturnFromProviderSearch();
 
-// ============================================
-// GLOBAL EVENT BUS (optional tiny pub/sub)
-// ============================================
+    const raw = sessionStorage.getItem("ehr_switchProviderId");
+    if (raw) {
+      const id = Number(raw);
+      sessionStorage.removeItem("ehr_switchProviderId");
+      if (id && typeof window.initSchedulerCalendar === "function") {
+        window.initSchedulerCalendar(id);
+      }
+    }
 
+    if (window.currentCalendar)
+      requestAnimationFrame(() => window.currentCalendar.updateSize());
+  } catch (e) {
+    console.warn("Scheduler switch restore failed:", e);
+  }
+}
+
+// ---- simple event bus (unchanged) ----
 window.Bus = (() => {
   const target = document.createElement("span");
   return {
-    on: (name, fn) => target.addEventListener(name, fn),
-    off: (name, fn) => target.removeEventListener(name, fn),
-    emit: (name, detail) =>
-      target.dispatchEvent(new CustomEvent(name, { detail })),
+    on: (n, f) => target.addEventListener(n, f),
+    off: (n, f) => target.removeEventListener(n, f),
+    emit: (n, d) => target.dispatchEvent(new CustomEvent(n, { detail: d })),
   };
 })();

@@ -1,55 +1,40 @@
 // ============================================
-// view-manager.js
-// Centralized single-page loader with caching
-// and lifecycle events (view:loaded, view:shown)
+// view-manager.js — unified fragment loader
 // ============================================
 
-(function () {
-  class ViewManager {
-    constructor(rootSelector = "#app-root") {
-      this.root = document.querySelector(rootSelector);
-      if (!this.root) throw new Error("❌ Missing #app-root in app.html");
-      this.cache = new Map();
-      this.current = null;
-    }
+window.ViewManager = (() => {
+  const rootId = "app-root";
 
-    // Load a new fragment (fetch from server if needed)
-    async loadView(name, url, { force = false } = {}) {
-      if (!force && this.cache.has(name)) {
-        this._render(name, this.cache.get(name));
-        return;
-      }
+  const root = () => {
+    const el = document.getElementById(rootId);
+    if (!el) throw new Error("ViewManager: missing #app-root");
+    return el;
+  };
 
-      const html = await this._fetchFragment(url);
-      this.cache.set(name, html);
-      this._render(name, html);
-    }
+  const toggleLoading = (on) => {
+    const el = document.getElementById("view-loading");
+    if (el) el.classList.toggle("active", on);
+  };
 
-    // Re-show a cached view (no fetch)
-    showView(name) {
-      if (!this.cache.has(name)) return;
-      const html = this.cache.get(name);
-      this._render(name, html, { silentLoaded: true });
-    }
+  async function loadView(name, url) {
+    toggleLoading(true);
+    const container = root();
 
-    async _fetchFragment(url) {
-      const res = await fetch(url, { headers: { "X-Requested-With": "fetch" } });
-      if (!res.ok) throw new Error(`Failed to load fragment ${url} (${res.status})`);
-      return await res.text();
-    }
+    try {
+      const resp = await fetch(url, { headers: { "X-Requested-With": "fetch" } });
+      if (!resp.ok) throw new Error(`Failed to load ${name}: ${resp.status}`);
 
-    _render(name, html, { silentLoaded = false } = {}) {
-      this.root.innerHTML = html;
-      this.current = name;
+      const html = await resp.text();
+      container.innerHTML = html;
 
-      // Lifecycle events for modules to hook into
-      if (!silentLoaded) {
-        document.dispatchEvent(new CustomEvent("view:loaded", { detail: { name } }));
-      }
-      document.dispatchEvent(new CustomEvent("view:shown", { detail: { name } }));
+      document.dispatchEvent(new CustomEvent("view:loaded", { detail: { name } }));
+      requestAnimationFrame(() => document.dispatchEvent(new CustomEvent("view:shown", { detail: { name } })));
+    } catch (err) {
+      console.error("ViewManager error:", err);
+    } finally {
+      toggleLoading(false);
     }
   }
 
-  // ✅ Expose globally
-  window.ViewManager = new ViewManager("#app-root");
+  return { loadView };
 })();
