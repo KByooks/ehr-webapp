@@ -1,8 +1,8 @@
 /* =========================================================
-   patient.css — Patient Search & Results
+   provider-search.css — Provider Search & Results
    ========================================================= */
 
-.view[data-name="patient"] {
+.view[data-name="provider"] {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -11,7 +11,7 @@
 }
 
 /* Title */
-.view[data-name="patient"] h1 {
+.view[data-name="provider"] h1 {
   margin: 0 0 0.75rem;
   color: #1e293b;
   font-size: 1.4rem;
@@ -19,26 +19,28 @@
 }
 
 /* Filters */
-#patient-search-filters {
+#provider-search-filters {
   margin-bottom: 1rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
 }
-#patient-search-filters input {
+
+#provider-search-filters input {
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   width: 180px;
   background: #f9fbfe;
 }
-#patient-search-filters input:focus {
+
+#provider-search-filters input:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(75,132,224,0.15);
 }
 
 /* Search button */
-#search-btn {
+#prov-search-btn {
   width: auto !important;
   display: inline-block !important;
   padding: 0.55rem 1.2rem;
@@ -50,25 +52,27 @@
   font-weight: 500;
   transition: background 0.2s ease, box-shadow 0.2s ease;
 }
-#search-btn:hover {
+#prov-search-btn:hover {
   background: var(--color-accent-hover);
   box-shadow: 0 3px 6px rgba(75,132,224,0.2);
 }
 
 /* Results Table */
-#patient-results-wrapper {
+#provider-results-wrapper {
   flex: 1;
   overflow-y: auto;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
   background: #fff;
 }
-#patient-results {
+
+#provider-results {
   width: 100%;
   border-collapse: collapse;
   background: #fff;
 }
-#patient-results thead th {
+
+#provider-results thead th {
   background: var(--color-accent);
   color: white;
   font-weight: 600;
@@ -77,14 +81,17 @@
   position: sticky;
   top: 0;
 }
-#patient-results tbody tr:nth-child(even) {
+
+#provider-results tbody tr:nth-child(even) {
   background: #f8faff;
 }
-#patient-results tbody tr:hover {
+
+#provider-results tbody tr:hover {
   background: #eef3ff;
   cursor: pointer;
 }
-#patient-results td {
+
+#provider-results td {
   padding: 9px 12px;
   border-bottom: 1px solid #e5e7eb;
   color: #1e293b;
@@ -95,7 +102,7 @@
 }
 
 /* Pagination */
-#pagination {
+#provider-pagination {
   margin-top: 0.75rem;
   display: flex;
   justify-content: center;
@@ -106,17 +113,20 @@
   background: #f9fbfe;
   border-radius: 0 0 8px 8px;
 }
-#pagination button {
+
+#provider-pagination button {
   background: var(--color-accent);
   color: white;
   border-radius: 6px;
   padding: 0.45rem 0.9rem;
   font-size: 14px;
 }
-#pagination button:hover {
+
+#provider-pagination button:hover {
   background: var(--color-accent-hover);
 }
-#pagination button:disabled {
+
+#provider-pagination button:disabled {
   background: #cbd5e1;
   cursor: not-allowed;
 }

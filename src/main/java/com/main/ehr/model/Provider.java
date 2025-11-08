@@ -18,6 +18,10 @@ public class Provider extends Auditable{
     private String phone;
     private String email;
     private boolean active;
+    
+    // ✅ NEW: flag to distinguish in-practice vs external (e.g., PCP elsewhere)
+    @Column(nullable = false)
+    private boolean inPractice = true;
 
     @OneToMany(mappedBy = "provider")
     private List<Appointment> appointments;
@@ -61,6 +65,9 @@ public class Provider extends Auditable{
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    
+    public boolean isInPractice() { return inPractice; }
+    public void setInPractice(boolean inPractice) { this.inPractice = inPractice; }
 
     public List<Appointment> getAppointments() { return appointments; }
     public void setAppointments(List<Appointment> appointments) { this.appointments = appointments; }

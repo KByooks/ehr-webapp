@@ -32,6 +32,9 @@
 
       container.appendChild(wrapper);
       currentModal = wrapper;
+	  
+	  const wnd = wrapper.querySelector(".modal-window");
+	  if (wnd) wnd.id = "appointment-modal";
 
       // dismiss on backdrop click
       wrapper.querySelector(".modal-backdrop")
@@ -50,6 +53,20 @@
         document.body.classList.remove("modal-open");
       }
     },
+	
+	// ✅ NEW: soft hide/show (used when swapping sections)
+	softHide() {
+	  if (currentModal) {
+	    currentModal.classList.add("hidden");
+	    document.body.classList.remove("modal-open");
+	  }
+	},
+	softShow() {
+	  if (currentModal) {
+	    currentModal.classList.remove("hidden");
+	    document.body.classList.add("modal-open");
+	  }
+	},
 
     isOpen() {
       return !!currentModal;

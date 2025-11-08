@@ -6,15 +6,6 @@
 		<div id="appointment-modal">
 			<div class="modal-content">
 				<h2>Appointment Details</h2>
-
-				<!-- Context summary -->
-				<div class="context-bar"
-					style="display: flex; gap: 1.25rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-					<p>
-						<strong>Provider:</strong> <span id="ctx-provider">—</span>
-					</p>
-				</div>
-
 				<!-- Appointment form -->
 				<form id="appointment-form" novalidate>
 					<!-- Date -->
@@ -29,7 +20,7 @@
 					</div>
 
 					<!-- Time & Duration -->
-					<div
+						<div
 						style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
 						<div class="field-group" data-field="timeStart">
 							<label for="timeStart">Start Time</label>
@@ -60,68 +51,78 @@
 							</div>
 							<small class="error-message"></small>
 						</div>
-					</div>
-
-					<!-- Patient -->
-					<div class="field-group" data-field="patientName"
-						style="position: relative;">
-						<label for="patientName">Patient</label>
-						<div class="with-icon">
-							<input type="text" id="patientName" placeholder="First Last"
-								autocomplete="off" required /> <span class="status-icon"
-								aria-hidden="true" style="visibility: hidden;">✅</span>
+						<div class="field-group" data-field="providerName"
+							style="position: relative;">
+							<label for="providerName">Provider</label>
+							<div class="with-icon">
+								<input type="text" id="providerName"
+									placeholder="Start typing provider..." autocomplete="off" />
+							</div>
+							<div id="provider-suggest" class="inline-suggest hidden"></div>
+							<small class="error-message"></small>
 						</div>
-						<div id="patient-suggest" class="inline-suggest hidden"></div>
-						<small class="error-message"></small>
-					</div>
 
-					<!-- Reason -->
-					<div class="field-group" data-field="reason">
-						<label for="reason">Reason</label>
-						<div class="with-icon">
-							<input type="text" id="reason" placeholder="Reason for visit" />
-							<span class="status-icon" aria-hidden="true"
-								style="visibility: hidden;">✅</span>
+
+						<!-- Patient -->
+						<div class="field-group" data-field="patientName"
+							style="position: relative;">
+							<label for="patientName">Patient</label>
+							<div class="with-icon">
+								<input type="text" id="patientName" placeholder="First Last"
+									autocomplete="off" required /> <span class="status-icon"
+									aria-hidden="true" style="visibility: hidden;">✅</span>
+							</div>
+							<div id="patient-suggest" class="inline-suggest hidden"></div>
+							<small class="error-message"></small>
 						</div>
-						<small class="error-message"></small>
-					</div>
 
-					<!-- Appointment Type -->
-					<div class="field-group" data-field="appointmentType">
-						<label for="appointmentType">Appointment Type</label>
-						<div class="with-icon">
-							<select id="appointmentType">
-								<option value="Follow-up">Follow-up</option>
-								<option value="New Patient">New Patient</option>
-								<option value="Post-Op">Post-Op</option>
-							</select> <span class="status-icon" aria-hidden="true"
-								style="visibility: hidden;">✅</span>
+						<!-- Reason -->
+						<div class="field-group" data-field="reason">
+							<label for="reason">Reason</label>
+							<div class="with-icon">
+								<input type="text" id="reason" placeholder="Reason for visit" />
+								<span class="status-icon" aria-hidden="true"
+									style="visibility: hidden;">✅</span>
+							</div>
+							<small class="error-message"></small>
 						</div>
-						<small class="error-message"></small>
-					</div>
 
-					<!-- Status -->
-					<div class="field-group" data-field="status">
-						<label for="status">Status</label>
-						<div class="with-icon">
-							<select id="status">
-								<option value="Scheduled">Scheduled</option>
-								<option value="Completed">Completed</option>
-								<option value="Cancelled">Cancelled</option>
-							</select> <span class="status-icon" aria-hidden="true"
-								style="visibility: hidden;">✅</span>
+						<!-- Appointment Type -->
+						<div class="field-group" data-field="appointmentType">
+							<label for="appointmentType">Appointment Type</label>
+							<div class="with-icon">
+								<select id="appointmentType">
+									<option value="Follow-up">Follow-up</option>
+									<option value="New Patient">New Patient</option>
+									<option value="Post-Op">Post-Op</option>
+								</select> <span class="status-icon" aria-hidden="true"
+									style="visibility: hidden;">✅</span>
+							</div>
+							<small class="error-message"></small>
 						</div>
-						<small class="error-message"></small>
-					</div>
 
-					<!-- Actions -->
-					<div class="form-actions">
-						<button type="button" id="delete-appointment"
-							class="delete-btn bg-red-600 text-white px-4 py-2 rounded">
-							Delete</button>
-						<button type="submit" class="save-btn">Save</button>
-						<button type="button" id="cancel-appointment" class="cancel-btn">Cancel</button>
-					</div>
+						<!-- Status -->
+						<div class="field-group" data-field="status">
+							<label for="status">Status</label>
+							<div class="with-icon">
+								<select id="status">
+									<option value="Scheduled">Scheduled</option>
+									<option value="Completed">Completed</option>
+									<option value="Cancelled">Cancelled</option>
+								</select> <span class="status-icon" aria-hidden="true"
+									style="visibility: hidden;">✅</span>
+							</div>
+							<small class="error-message"></small>
+						</div>
+
+						<!-- Actions -->
+						<div class="form-actions">
+							<button type="button" id="delete-appointment"
+								class="delete-btn bg-red-600 text-white px-4 py-2 rounded">
+								Delete</button>
+							<button type="submit" class="save-btn">Save</button>
+							<button type="button" id="cancel-appointment" class="cancel-btn">Cancel</button>
+						</div>
 				</form>
 			</div>
 		</div>

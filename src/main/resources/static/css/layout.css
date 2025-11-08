@@ -1,17 +1,21 @@
-/* Sidebar + layout */
+/* =========================================================
+   layout.css — Core App Layout
+   ========================================================= */
+
 #app {
   display: flex;
   height: 100vh;
   width: 100%;
+  overflow: hidden;
 }
 
+/* Sidebar */
 #sidebar {
-  background: #1E2A44; /* dark navy steel */
+  flex: 0 0 220px;
+  background: #1E2A44;
   color: #e9edf5;
-  width: 220px;
-  height: 100vh;
   padding: 1.25rem;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 2px 0 6px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
   border-right: 3px solid var(--color-accent);
@@ -19,16 +23,18 @@
 
 #sidebar h2 {
   text-align: center;
-  color: var(--color-accent); /* matches "Clinic Portal" */
+  color: var(--color-accent);
   font-weight: 700;
   font-size: 1.25rem;
   margin-bottom: 1.25rem;
 }
 
-#sidebar button {
+#sidebar button,
+#sidebar a[data-nav] {
+  display: block;
   width: 100%;
-  background: var(--color-accent); /* same as title */
-  color: #ffffff;
+  background: var(--color-accent);
+  color: #fff;
   border: none;
   border-radius: var(--radius);
   padding: 0.6rem 0.75rem;
@@ -37,20 +43,33 @@
   font-weight: 500;
   margin-bottom: 0.5rem;
   transition: var(--transition);
+  text-decoration: none;
 }
-
-#sidebar button:hover {
+#sidebar button:hover,
+#sidebar a[data-nav]:hover {
   background: var(--color-accent-hover);
   box-shadow: 0 0 8px var(--color-accent-light);
   transform: translateY(-1px);
 }
 
-
-
-
-#main-content {
-  flex: 1;
+/* Main View Area */
+#app-root {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 1.5rem;
   background: var(--color-bg);
+  box-sizing: border-box;
+}
+
+.view {
+  flex: 1 1 auto;
   overflow-y: auto;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+.view.hidden {
+  display: none !important;
 }
