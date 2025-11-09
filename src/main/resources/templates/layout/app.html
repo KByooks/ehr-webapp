@@ -27,9 +27,13 @@
 		</aside>
 
 		<!-- ✅ Unified ViewManager root container -->
-		<main id="app-root" class="flex-1 p-4">
-			<div id="view-loading" class="hidden">Loading...</div>
+		<main id="app-root" class="flex-1 p-4 relative">
+			<div id="view-loading"
+				class="hidden absolute inset-0 flex items-center justify-center bg-white/50 z-50">
+				Loading...</div>
+			<!-- Views will be dynamically appended here by ViewManager -->
 		</main>
+
 	</div>
 
 	<!-- ============================= -->

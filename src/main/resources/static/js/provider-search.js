@@ -1,3 +1,7 @@
+// ============================================
+// provider-search.js — supports prefill + search on view:shown
+// ============================================
+
 window.ProviderSearch = {
   init() {
     this.table = new SearchTable({
@@ -31,22 +35,36 @@ window.ProviderSearch = {
       autoSearch: false,
     });
 
+    // one-time prefill when fragment first loads
     const prefill = window.EHRState?.consumePrefillProvider?.();
-    if (prefill) {
-      const fn = document.querySelector("#prov-firstName");
-      const ln = document.querySelector("#prov-lastName");
-      const chk = document.querySelector("#prov-inPracticeOnly");
-      if (fn) fn.value = prefill.first || "";
-      if (ln) ln.value = prefill.last || "";
-      if (chk) chk.value = prefill.inPracticeOnly ? "true" : "";
-      this.table.page = 0;
-      this.table.search();
+    if (prefill) this.prefillAndSearch(prefill);
+  },
+
+  // called when view is shown (or init) to fill filters and trigger search
+  async prefillAndSearch(prefill) {
+    if (!prefill) return;
+
+    // ✅ Fill in the fields
+    const fn = document.querySelector("#prov-firstName");
+    const ln = document.querySelector("#prov-lastName");
+    const chk = document.querySelector("#prov-inPracticeOnly");
+
+    if (fn) fn.value = prefill.first || "";
+    if (ln) ln.value = prefill.last || "";
+
+    // ✅ Always enforce in-practice when coming from scheduler/modal
+    if (chk) {
+      chk.checked = true;
+      chk.value = "true";
     }
+
+    // ✅ Run the search immediately
+    this.table.page = 0;
+    await this.table.search();
   },
 
   selectProvider(provider) {
     if (!provider) return;
-
     const active = window.EHRState?.getActiveAppointment?.();
 
     // ---- Case 1: Appointment modal flow ----
@@ -60,15 +78,24 @@ window.ProviderSearch = {
     const switching = sessionStorage.getItem("ehr_returnFromScheduler") === "true";
     if (switching) {
       console.log("✅ Returning to Scheduler with new provider calendar:", provider);
+
       // Clean up the temporary flags
       sessionStorage.removeItem("ehr_returnFromScheduler");
       sessionStorage.removeItem("ehr_prefillProvider");
 
-      // Save selected provider for Scheduler calendar reload
+      // Persist selection for context
       sessionStorage.setItem("ehr_selectedProvider", JSON.stringify(provider));
 
-      // Load the Scheduler view again — calendar.js will use that saved provider
-      ViewManager.loadView("scheduler", "/fragments/scheduler");
+      // ✅ Directly update scheduler without reload
+      if (window.Scheduler?.updateProvider) {
+        ViewManager.showView("scheduler");
+        window.Scheduler.updateProvider(provider);
+        if (window.currentCalendar)
+          requestAnimationFrame(() => window.currentCalendar.updateSize());
+      } else {
+        // fallback if scheduler inactive
+        ViewManager.loadView("scheduler", "/fragments/scheduler");
+      }
       return;
     }
 

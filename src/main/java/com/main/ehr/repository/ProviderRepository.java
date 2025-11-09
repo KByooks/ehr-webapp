@@ -10,18 +10,19 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ProviderRepository extends JpaRepository<Provider, Long> {
 
-    /**
-     * Flexible provider search:
-     * - firstName: single letter → "starts with", longer → "contains"
-     * - specialty: partial match
-     * - null Boolean filters are ignored (show all)
-     * - uses COALESCE for shorter syntax
-     */
     @Query("""
         SELECT p FROM Provider p
         WHERE
-          (COALESCE(:inPracticeOnly, p.inPractice) = p.inPractice)
-          AND (COALESCE(:activeOnly, p.active) = p.active)
+          (
+            :inPracticeOnly IS NULL
+            OR (:inPracticeOnly = TRUE AND p.inPractice = TRUE)
+            OR (:inPracticeOnly = FALSE AND p.inPractice = FALSE)
+          )
+          AND (
+            :activeOnly IS NULL
+            OR (:activeOnly = TRUE AND p.active = TRUE)
+            OR (:activeOnly = FALSE AND p.active = FALSE)
+          )
           AND (
             :firstName IS NULL
             OR (
@@ -39,11 +40,11 @@ public interface ProviderRepository extends JpaRepository<Provider, Long> {
           )
         """)
     Page<Provider> searchProviders(
-            @Param("firstName") String firstName,
-            @Param("lastName") String lastName,
-            @Param("specialty") String specialty,
-            @Param("inPracticeOnly") Boolean inPracticeOnly,
-            @Param("activeOnly") Boolean activeOnly,
-            Pageable pageable
+        @Param("firstName") String firstName,
+        @Param("lastName") String lastName,
+        @Param("specialty") String specialty,
+        @Param("inPracticeOnly") Boolean inPracticeOnly,
+        @Param("activeOnly") Boolean activeOnly,
+        Pageable pageable
     );
 }

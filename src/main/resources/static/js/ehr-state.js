@@ -9,6 +9,7 @@ window.EHRState = (() => {
     prefillPatient: null,
     prefillProvider: null,
     pendingReturn: null,
+    lastSection: "scheduler",
   };
 
   const load = () => {
@@ -44,7 +45,20 @@ window.EHRState = (() => {
     setPendingReturn(field, entity) { update("pendingReturn", { field, entity }); },
     consumePendingReturn() { load(); const v = state.pendingReturn; state.pendingReturn = null; save(); return v; },
 
-    // Optional util
-    clearAll() { state = { activeAppointment:null, prefillPatient:null, prefillProvider:null, pendingReturn:null }; save(); },
+    // ---- Last active section ----
+    setLastSection(name) { update("lastSection", name || "scheduler"); },
+    getLastSection() { load(); return state.lastSection || "scheduler"; },
+
+    // ---- Utility ----
+    clearAll() {
+      state = {
+        activeAppointment: null,
+        prefillPatient: null,
+        prefillProvider: null,
+        pendingReturn: null,
+        lastSection: "scheduler",
+      };
+      save();
+    },
   };
 })();

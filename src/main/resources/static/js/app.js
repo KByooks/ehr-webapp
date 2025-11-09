@@ -8,7 +8,10 @@ window.loadSection = async function loadSection(sectionName, force = false) {
 };
 
 // ---- boot ----
-window.addEventListener("DOMContentLoaded", () => loadSection("scheduler"));
+window.addEventListener("DOMContentLoaded", () => {
+  const last = window.EHRState?.getLastSection?.() || "scheduler";
+  loadSection(last);
+});
 
 // ---- sidebar router ----
 document.addEventListener("click", (e) => {
@@ -16,7 +19,10 @@ document.addEventListener("click", (e) => {
   if (!link) return;
   e.preventDefault();
   const section = link.getAttribute("data-nav");
-  if (section) loadSection(section);
+  if (section) {
+    window.EHRState?.setLastSection?.(section);
+    window.ViewManager.showView(section) || loadSection(section);
+  }
 });
 
 // ---- lifecycle handlers ----
@@ -45,12 +51,12 @@ document.addEventListener("view:loaded", (e) => {
   }
 });
 
-// ---- global modal visibility + return logic ----
+// ---- view:shown ----
 document.addEventListener("view:shown", (e) => {
   const { name } = e.detail;
   console.log("📺 view:shown →", name);
 
-  // Hide modal when leaving scheduler
+  // modal visibility management
   if (window.ModalManager?.isOpen?.()) {
     if (name === "scheduler") {
       window.ModalManager.softShow();
@@ -59,7 +65,7 @@ document.addEventListener("view:shown", (e) => {
     }
   }
 
-  // Handle return to scheduler
+  // scheduler re-render / return handling
   if (name === "scheduler") {
     if (typeof window.handleReturnFromPatientSearch === "function")
       window.handleReturnFromPatientSearch();
@@ -67,6 +73,27 @@ document.addEventListener("view:shown", (e) => {
       window.handleReturnFromProviderSearch();
     if (window.currentCalendar)
       requestAnimationFrame(() => window.currentCalendar.updateSize());
+  }
+});
+
+// ---- handle prefill when patient/provider search is shown ----
+document.addEventListener("view:shown", async (e) => {
+  const { name } = e.detail;
+
+  // 🧍 Patient Search Prefill
+  if (name === "patient") {
+    const prefill = window.EHRState?.consumePrefillPatient?.();
+    if (prefill && window.PatientSearch?.prefillAndSearch) {
+      await window.PatientSearch.prefillAndSearch(prefill);
+    }
+  }
+
+  // 🩺 Provider Search Prefill
+  if (name === "provider") {
+    const prefill = window.EHRState?.consumePrefillProvider?.();
+    if (prefill && window.ProviderSearch?.prefillAndSearch) {
+      await window.ProviderSearch.prefillAndSearch(prefill);
+    }
   }
 });
 
@@ -94,7 +121,7 @@ function handleSchedulerReturnAndSwitch() {
   }
 }
 
-// ---- simple event bus (unchanged) ----
+// ---- simple event bus ----
 window.Bus = (() => {
   const target = document.createElement("span");
   return {

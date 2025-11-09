@@ -1,6 +1,9 @@
+// ============================================
+// patient-search.js — supports prefill + search on view:shown
+// ============================================
+
 window.PatientSearch = {
   init() {
-    // 👇 autoSearch false so we control exactly when to run it
     this.table = new SearchTable({
       endpoint: "/api/patients/search",
       tableBody: "#patient-results tbody",
@@ -16,27 +19,38 @@ window.PatientSearch = {
         zip: "#filter-zip",
       },
       columns: [
-        { key: "firstName" }, { key: "lastName" }, { key: "dob" },
-        { key: "phone" }, { key: "address" }, { key: "city" },
-        { key: "state" }, { key: "zip" }, { key: "email" },
+        { key: "firstName" },
+        { key: "lastName" },
+        { key: "dob" },
+        { key: "phone" },
+        { key: "address" },
+        { key: "city" },
+        { key: "state" },
+        { key: "zip" },
+        { key: "email" },
       ],
       pageInfo: "#patient-page-info",
       prevBtn: "#patient-prev",
       nextBtn: "#patient-next",
       extractList: (d) => d.patients || [],
       onRowDblClick: (p) => this.selectPatient(p),
-      autoSearch: false, // ✅ don't auto-run
+      autoSearch: false,
     });
 
+    // one-time prefill when fragment first loads
     const prefill = window.EHRState?.consumePrefillPatient?.();
-    if (prefill) {
-      const fn = document.querySelector("#filter-firstName");
-      const ln = document.querySelector("#filter-lastName");
-      if (fn) fn.value = prefill.firstName || "";
-      if (ln) ln.value = prefill.lastName || "";
-      this.table.page = 0;
-      this.table.search(); // ✅ this is now the only search call
-    }
+    if (prefill) this.prefillAndSearch(prefill);
+  },
+
+  // called when view is shown (or init) to fill filters and trigger search
+  async prefillAndSearch(prefill) {
+    if (!prefill) return;
+    const fn = document.querySelector("#filter-firstName");
+    const ln = document.querySelector("#filter-lastName");
+    if (fn) fn.value = prefill.firstName || "";
+    if (ln) ln.value = prefill.lastName || "";
+    this.table.page = 0;
+    await this.table.search();
   },
 
   selectPatient(patient) {
