@@ -89,6 +89,52 @@ window.AppointmentModal = (() => {
 			pn.value = `${data.patient.firstName} ${data.patient.lastName}`;
 			pn.dataset.patientId = data.patient.id ?? data.patientId ?? "";
 		}
+		
+		// ---- Auto-sync start/end/duration fields ----
+		const startEl = form.querySelector("#timeStart");
+		const endEl = form.querySelector("#timeEnd");
+		const durEl = form.querySelector("#duration");
+
+		const parseHHMM = (v) => {
+		  if (!v) return null;
+		  const [h, m] = v.split(":").map(Number);
+		  return h * 60 + m;
+		};
+		const formatHHMM = (mins) => {
+		  const h = Math.floor((mins % (24 * 60)) / 60);
+		  const m = mins % 60;
+		  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+		};
+
+		function syncTimes(source) {
+		  const start = parseHHMM(startEl?.value);
+		  const end = parseHHMM(endEl?.value);
+		  const dur = Number(durEl?.value) || 0;
+
+		  if (!startEl || !endEl || !durEl) return;
+
+		  if (source === "start" && start != null && dur > 0) {
+		    endEl.value = formatHHMM(start + dur);
+		    window.CurrentAppointmentData.updateField("timeEnd", endEl.value);
+		  }
+		  else if (source === "end" && end != null && dur > 0) {
+		    startEl.value = formatHHMM(end - dur);
+		    window.CurrentAppointmentData.updateField("timeStart", startEl.value);
+		  }
+		  else if (source === "duration" && start != null && dur > 0) {
+		    endEl.value = formatHHMM(start + dur);
+		    window.CurrentAppointmentData.updateField("timeEnd", endEl.value);
+		  }
+
+		  // ✅ Always persist duration value to the model
+		  window.CurrentAppointmentData.updateField("duration", durEl.value);
+		}
+
+		// Bind once per modal instance
+		if (startEl) startEl.addEventListener("change", () => syncTimes("start"));
+		if (endEl) endEl.addEventListener("change", () => syncTimes("end"));
+		if (durEl) durEl.addEventListener("change", () => syncTimes("duration"));
+
 
 		attachPatientSuggest(document);
 		attachProviderSuggest(document);
@@ -96,58 +142,157 @@ window.AppointmentModal = (() => {
 		bindAppointmentModalButtons();
 	}
 
-	// ---------- BIND BUTTONS ----------
+	// ---------- BIND BUTTONS (idempotent, delegated, single-fire) ----------
+	let __apptHandlersBound = false;
+	let __isSaving = false;
+	let __isDeleting = false;
+
 	function bindAppointmentModalButtons() {
-		document.addEventListener("submit", async (e) => {
-			const form = e.target.closest("#appointment-form");
-			if (form) {
-				e.preventDefault();
-				await onSubmit(form);
-			}
-		});
+	  if (__apptHandlersBound) return; // bind once
+	  __apptHandlersBound = true;
 
-		document.addEventListener("click", async (e) => {
-			if (e.target.closest(".save-btn")) {
-				const form = document.querySelector("#appointment-form");
-				if (form) await onSubmit(form);
-			}
-			if (e.target.closest("#delete-appointment")) await onDelete();
-			if (e.target.closest("#cancel-appointment")) onCancel();
-		});
+	  // Submit via form submit
+	  document.addEventListener("submit", async (e) => {
+	    const form = e.target.closest("#appointment-form");
+	    if (!form) return;
+	    e.preventDefault();
+	    await onSubmit(form);
+	  });
+
+	  // Click handlers (save / delete / cancel)
+	  document.addEventListener("click", async (e) => {
+	    const form = document.querySelector("#appointment-form");
+	    if (!form) return;
+
+	    if (e.target.closest(".save-btn")) {
+	      e.preventDefault();
+	      await onSubmit(form);
+	    }
+	    if (e.target.closest("#delete-appointment")) {
+	      e.preventDefault();
+	      await onDelete();
+	    }
+	    if (e.target.closest("#cancel-appointment")) {
+	      e.preventDefault();
+	      onCancel();
+	    }
+	  });
 	}
 
-	// ---------- SAVE / CANCEL / DELETE ----------
+	// ---------- SAVE ----------
 	async function onSubmit(form) {
-		const data = window.CurrentAppointmentData.getAll();
-		const apptId = form.dataset.appointmentId || data.appointmentId || null;
-		const isUpdate = !!apptId;
+	  if (__isSaving) return;
+	  __isSaving = true;
 
-		const patientInput = form.querySelector("#patientName");
-		const patientId = Number(patientInput?.dataset?.patientId);
-		if (!patientId) return alert("Select a patient first.");
-		data.patientId = patientId;
+	  try {
+	    // Always take the freshest values FROM THE FORM, then sync model
+	    const getVal = (id) => form.querySelector(`#${id}`)?.value?.trim() || null;
 
-		const url = isUpdate ? `/api/schedule/${apptId}` : "/api/schedule";
-		const method = isUpdate ? "PUT" : "POST";
+	    const model = window.CurrentAppointmentData.getAll();
 
-		try {
-			const res = await fetch(url, {
-				method,
-				headers: { "Content-Type": "application/json", Accept: "application/json", ...getCsrfHeaders() },
-				body: JSON.stringify(data),
-			});
-			const json = await res.json().catch(() => ({}));
-			if (!res.ok || !json.success) return alert(`Save failed (${res.status})`);
+	    // Fresh values
+	    const fresh = {
+	      date: getVal("date"),
+	      timeStart: getVal("timeStart"),
+	      timeEnd: getVal("timeEnd"),
+	      duration: Number(getVal("duration")) || model.duration || 15,
+	      reason: getVal("reason"),
+	      appointmentType: getVal("appointmentType"),
+	      status: getVal("status"),
+	    };
 
-			window.ModalManager.hide();
-			window.currentCalendar?.refetchEvents?.();
-			window.CurrentAppointmentData.reset();
-			window.EHRState?.clearActiveAppointment?.();
-		} catch (err) {
-			console.error("Save error:", err);
-			alert("Network error while saving appointment.");
-		}
+	    // IDs from data-attrs
+	    const providerInput = form.querySelector("#providerName");
+	    const patientInput = form.querySelector("#patientName");
+	    const providerId = Number(providerInput?.dataset?.providerId || model.providerId);
+	    const patientId = Number(patientInput?.dataset?.patientId || model.patientId);
+
+	    if (!patientId) { alert("Select a patient first."); return; }
+	    if (!providerId) { alert("Select a provider first."); return; }
+
+	    // Sync model
+	    Object.entries(fresh).forEach(([k, v]) => {
+	      if (v != null) window.CurrentAppointmentData.updateField(k, v);
+	    });
+	    window.CurrentAppointmentData.updateField("patientId", patientId);
+	    window.CurrentAppointmentData.updateField("providerId", providerId);
+
+	    const data = window.CurrentAppointmentData.getAll();
+
+	    // Determine create vs update
+	    const apptId = form.dataset.appointmentId || data.appointmentId || null;
+	    const isUpdate = !!apptId;
+	    const url = isUpdate ? `/api/schedule/${apptId}` : "/api/schedule";
+	    const method = isUpdate ? "PUT" : "POST";
+
+	    // Disable save button during request
+	    const saveBtn = form.querySelector(".save-btn");
+	    if (saveBtn) saveBtn.disabled = true;
+
+	    const res = await fetch(url, {
+	      method,
+	      headers: {
+	        "Content-Type": "application/json",
+	        Accept: "application/json",
+	        ...getCsrfHeaders(),
+	      },
+	      body: JSON.stringify(data),
+	    });
+
+	    const json = await res.json().catch(() => ({}));
+	    if (!res.ok || !json.success) {
+	      alert(`Save failed (${res.status})`);
+	      return;
+	    }
+
+	    window.ModalManager.hide();
+	    window.currentCalendar?.refetchEvents?.();
+	    window.CurrentAppointmentData.reset();
+	    window.EHRState?.clearActiveAppointment?.();
+	  } catch (err) {
+	    console.error("Save error:", err);
+	    alert("Network error while saving appointment.");
+	  } finally {
+	    __isSaving = false;
+	    const form = document.querySelector("#appointment-form");
+	    const saveBtn = form?.querySelector?.(".save-btn");
+	    if (saveBtn) saveBtn.disabled = false;
+	  }
 	}
+
+	// ---------- DELETE ----------
+	async function onDelete() {
+	  if (__isDeleting) return;
+	  __isDeleting = true;
+
+	  try {
+	    const id = window.CurrentAppointmentData.get("appointmentId");
+	    if (!id) { alert("No appointment to delete."); return; }
+	    if (!confirm("Are you sure?")) return;
+
+	    const res = await fetch(`/api/schedule/${id}`, {
+	      method: "DELETE",
+	      headers: { Accept: "application/json", ...getCsrfHeaders() },
+	    });
+	    const json = await res.json().catch(() => ({}));
+	    if (!res.ok || !json.success) {
+	      alert(`Delete failed`);
+	      return;
+	    }
+
+	    window.ModalManager.hide();
+	    window.currentCalendar?.refetchEvents?.();
+	    window.CurrentAppointmentData.reset();
+	    window.EHRState?.clearActiveAppointment?.();
+	  } catch (err) {
+	    console.error("Delete error:", err);
+	    alert("Network error while deleting appointment.");
+	  } finally {
+	    __isDeleting = false;
+	  }
+	}
+
+
 
 	function onCancel() {
 		window.ModalManager.hide();
@@ -155,25 +300,6 @@ window.AppointmentModal = (() => {
 		window.EHRState?.clearActiveAppointment?.();
 	}
 
-	async function onDelete() {
-		const id = window.CurrentAppointmentData.get("appointmentId");
-		if (!id) return alert("No appointment to delete.");
-		if (!confirm("Are you sure?")) return;
-
-		try {
-			const res = await fetch(`/api/schedule/${id}`, { method: "DELETE", headers: { Accept: "application/json", ...getCsrfHeaders() } });
-			const json = await res.json().catch(() => ({}));
-			if (!res.ok || !json.success) return alert(`Delete failed`);
-
-			window.ModalManager.hide();
-			window.currentCalendar?.refetchEvents?.();
-			window.CurrentAppointmentData.reset();
-			window.EHRState?.clearActiveAppointment?.();
-		} catch (err) {
-			console.error("Delete error:", err);
-			alert("Network error while deleting appointment.");
-		}
-	}
 
 	// ---------- PATIENT SUGGEST ----------
 	function attachPatientSuggest(root) {
@@ -207,30 +333,34 @@ window.AppointmentModal = (() => {
 		});
 
 		input.addEventListener("keydown", async (e) => {
-			if (e.key !== "Enter" && e.key !== "Tab") return;
-			e.preventDefault();
-			const query = input.value.trim();
-			const [first, last] = query.split(/\s+/, 2);
-			const res = await fetch(`/api/providers/search?firstName=${first || ""}&lastName=${last || ""}&inPracticeOnly=true&size=12`);
-			const data = await res.json();
-			const list = data.patients || [];
+		  if (e.key !== "Enter" && e.key !== "Tab") return;
+		  e.preventDefault();
 
-			if (list.length === 1) {
-				const p = list[0];
-				input.value = `${p.firstName} ${p.lastName}`;
-				input.dataset.patientId = p.id;
-				window.CurrentAppointmentData.updateField("patient", p);
-				window.CurrentAppointmentData.updateField("patientId", p.id);
-				return;
-			}
+		  const query = input.value.trim();
+		  const [first, last] = query.split(/\s+/, 2);
 
-			// Multiple → open search
-			const active = window.CurrentAppointmentData.getAll();
-			window.EHRState.saveActiveAppointment(active);
-			window.EHRState.setPrefillPatient({ firstName: first || "", lastName: last || "" });
-			window.ModalManager.softHide();
-			await ViewManager.loadView("patient", "/fragments/patient");
+		  // ✅ Correct endpoint: patients, not providers
+		  const res = await fetch(`/api/patients/search?firstName=${first || ""}&lastName=${last || ""}&size=6`);
+		  const data = await res.json();
+		  const list = data.patients || [];
+
+		  if (list.length === 1) {
+		    const p = list[0];
+		    input.value = `${p.firstName} ${p.lastName}`;
+		    input.dataset.patientId = p.id;
+		    window.CurrentAppointmentData.updateField("patient", p);
+		    window.CurrentAppointmentData.updateField("patientId", p.id);
+		    return;
+		  }
+
+		  // Multiple → open search
+		  const active = window.CurrentAppointmentData.getAll();
+		  window.EHRState.saveActiveAppointment(active);
+		  window.EHRState.setPrefillPatient({ firstName: first || "", lastName: last || "" });
+		  window.ModalManager.softHide();
+		  await ViewManager.loadView("patient", "/fragments/patient");
 		});
+
 	}
 
 	// ---------- PROVIDER SUGGEST ----------

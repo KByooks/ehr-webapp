@@ -51,6 +51,8 @@
         currentModal.remove();
         currentModal = null;
         document.body.classList.remove("modal-open");
+		// ✅ Notify listeners
+		document.dispatchEvent(new CustomEvent("modal:hidden"));
       }
     },
 	
