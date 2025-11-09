@@ -118,15 +118,19 @@ window.AppointmentModal = (() => {
 		    window.CurrentAppointmentData.updateField("timeEnd", endEl.value);
 		  }
 		  else if (source === "end" && end != null && dur > 0) {
-		    startEl.value = formatHHMM(end - dur);
-		    window.CurrentAppointmentData.updateField("timeStart", startEl.value);
+			// when end changes → recalc duration
+			 const newDur = end - start;
+			 durEl.value = newDur;
+			 window.CurrentAppointmentData.updateField("duration", newDur);
 		  }
 		  else if (source === "duration" && start != null && dur > 0) {
 		    endEl.value = formatHHMM(start + dur);
 		    window.CurrentAppointmentData.updateField("timeEnd", endEl.value);
 		  }
 
-		  // ✅ Always persist duration value to the model
+		  // always persist the base values
+		  window.CurrentAppointmentData.updateField("timeStart", startEl.value);
+		  window.CurrentAppointmentData.updateField("timeEnd", endEl.value);
 		  window.CurrentAppointmentData.updateField("duration", durEl.value);
 		}
 
