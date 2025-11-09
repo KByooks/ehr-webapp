@@ -259,35 +259,64 @@ window.AppointmentModal = (() => {
 		});
 
 		dropdown.addEventListener("click", (e) => {
-			const item = e.target.closest(".suggestion-item");
-			if (!item) return;
-			input.value = item.dataset.name;
-			input.dataset.providerId = item.dataset.id;
-			hideDD();
-			window.CurrentAppointmentData.updateField("providerId", Number(item.dataset.id));
+		  const item = e.target.closest(".suggestion-item");
+		  if (!item) return;
+
+		  const providerId = Number(item.dataset.id);
+		  input.value = item.dataset.name;
+		  input.dataset.providerId = providerId;
+		  hideDD();
+
+		  window.CurrentAppointmentData.updateField("providerId", providerId);
+
+		  // ✅ Switch scheduler calendar immediately when provider changes
+		  if (window.Scheduler?.updateProvider) {
+		    fetch(`/api/providers/${providerId}`)
+		      .then((r) => r.json())
+		      .then((prov) => {
+		        window.Scheduler.updateProvider(prov);
+		        console.log("🔄 Switched scheduler calendar to provider via dropdown:", prov.displayName || `${prov.firstName} ${prov.lastName}`);
+		      })
+		      .catch((err) => console.warn("Failed to switch provider calendar:", err));
+		  }
 		});
+
 
 		input.addEventListener("keydown", async (e) => {
-			if (e.key !== "Enter" && e.key !== "Tab") return;
-			e.preventDefault();
-			const q = input.value.trim();
-			const [first, last] = q.split(/\s+/, 2);
-			const res = await fetch(`/api/providers/search?firstName=${first || ""}&lastName=${last || ""}&inPracticeOnly=true&size=12`);
-			const data = await res.json();
-			const list = data.providers || [];
+		  if (e.key !== "Enter" && e.key !== "Tab") return;
+		  e.preventDefault();
 
-			if (list.length === 1) {
-				const p = list[0];
-				input.value = p.displayName || `${p.firstName} ${p.lastName}`;
-				input.dataset.providerId = p.id;
-				window.CurrentAppointmentData.updateField("providerId", p.id);
-				return;
-			}
+		  const q = input.value.trim();
+		  const [first, last] = q.split(/\s+/, 2);
+		  const res = await fetch(`/api/providers/search?firstName=${first || ""}&lastName=${last || ""}&inPracticeOnly=true&size=12`);
+		  const data = await res.json();
+		  const list = data.providers || [];
 
-			window.EHRState.setPrefillProvider({ first: first || "", last: last || "", inPracticeOnly: true });
-			window.ModalManager.softHide();
-			await ViewManager.loadView("provider", "/fragments/provider");
+		  // ✅ Case 1: Exactly one match → auto-fill and switch calendar
+		  if (list.length === 1) {
+		    const p = list[0];
+		    input.value = p.displayName || `${p.firstName} ${p.lastName}`;
+		    input.dataset.providerId = p.id;
+		    window.CurrentAppointmentData.updateField("providerId", p.id);
+
+		    // ✅ Also switch scheduler calendar to this provider
+		    if (window.Scheduler?.updateProvider) {
+		      window.Scheduler.updateProvider(p);
+		      console.log("🔄 Switched scheduler calendar to provider via Tab/Enter:", p.displayName || `${p.firstName} ${p.lastName}`);
+		    }
+		    return;
+		  }
+
+		  // ✅ Case 2: Multiple matches → open provider search
+		  window.EHRState.setPrefillProvider({
+		    first: first || "",
+		    last: last || "",
+		    inPracticeOnly: true,
+		  });
+		  window.ModalManager.softHide();
+		  await ViewManager.loadView("provider", "/fragments/provider");
 		});
+
 	}
 
 	return { open };

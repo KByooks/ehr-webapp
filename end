@@ -1,0 +1,16 @@
+* [33mc7ec51f[m[33m ([m[1;32mpersistent-views-architecture[m[33m)[m Finalzize persistent view system, EHRState prefill flow, and provider in-practice filter
+*   [33m8e6895e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m Ignore build artifacts (target folder)
+[32m|[m[33m\[m  
+[32m|[m * [33me0dae9c[m[33m ([m[1;32mdisplayProviderInAppointment[m[33m)[m Refactored and refined the entire view switching process. Added provider search and funcitonality from the appointment modal and scheduler
+* [33m|[m [33mddde31e[m Clean build artifacts prepped for merge.
+* [33m|[m [33m8fc4297[m Remove target directory from VC
+[33m|[m[33m/[m  
+*   [33mf27ffd7[m Merge branch 'appointment-tuneup'
+[34m|[m[35m\[m  
+[34m|[m * [33m2d32d72[m[33m ([m[1;31morigin/appointment-tuneup[m[33m, [m[1;32mappointment-tuneup[m[33m)[m Fix appointment create/update/delete flow and added delegated bindings. Also redid framework and structure for efficianly and flow
+* [35m|[m [33m977c2f8[m[33m ([m[1;32mpersistent-view-architecture[m[33m)[m Merge pull request #1 from KByooks/appointment-tuneup
+[36m|[m[35m\[m[35m|[m 
+[36m|[m * [33m34601b4[m Change calendar default view to week
+[36m|[m[36m/[m  
+* [33mf966782[m Added optimized .gitignore
+* [33mc4536d1[m Initial EHR baseline - Scheduler + Appointment Modal + PAtient Search
