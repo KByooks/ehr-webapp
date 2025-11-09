@@ -142,7 +142,6 @@ window.AppointmentModal = (() => {
 
 		attachPatientSuggest(document);
 		attachProviderSuggest(document);
-
 		bindAppointmentModalButtons();
 	}
 

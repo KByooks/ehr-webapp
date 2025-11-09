@@ -128,6 +128,8 @@ function initSchedulerCalendar(providerId = null) {
 	// ===========================================================
 	const calendar = new FullCalendar.Calendar(calendarEl, {
 		initialView: "timeGridWeek",
+		editable: true,        // ✅ enables dragging
+		eventDurationEditable: true,
 		slotDuration: "00:15:00",
 		expandRows: true,
 		nowIndicator: true,
@@ -195,6 +197,78 @@ function initSchedulerCalendar(providerId = null) {
 				setTimeout(() => delete calendarEl.dataset.lastEvent, 350);
 			}
 		},
+		
+		// ✅ Drag-and-drop reschedule support
+		eventDrop: async (info) => {
+		  try {
+		    const event = info.event;
+		    const id = event.id;
+		    const startISO = event.startStr;
+		    const endISO = event.endStr;
+
+		    const [date, timeStartRaw] = startISO.split("T");
+		    const [, timeEndRaw] = endISO.split("T");
+		    const timeStart = timeStartRaw.slice(0, 5);
+		    const timeEnd = timeEndRaw.slice(0, 5);
+
+		    const payload = { date, timeStart, timeEnd };
+
+		    // Send update to backend
+		    const res = await fetch(`/api/schedule/${id}`, {
+		      method: "PUT",
+		      headers: { "Content-Type": "application/json" },
+		      body: JSON.stringify(payload),
+		    });
+
+		    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+		    // Update in-memory data (CurrentAppointmentData)
+		    window.CurrentAppointmentData.updateField("date", date);
+		    window.CurrentAppointmentData.updateField("timeStart", timeStart);
+		    window.CurrentAppointmentData.updateField("timeEnd", timeEnd);
+
+		    console.log(`✅ Appointment ${id} moved to ${date} ${timeStart}-${timeEnd}`);
+		  } catch (err) {
+		    console.error("⚠️ Failed to move appointment:", err);
+		    info.revert(); // Revert on failure
+		  }
+		},
+		// ✅ Resize support — adjust appointment duration visually
+		eventResize: async (info) => {
+		  try {
+		    const event = info.event;
+		    const id = event.id;
+		    const startISO = event.startStr;
+		    const endISO = event.endStr;
+
+		    const [date, timeStartRaw] = startISO.split("T");
+		    const [, timeEndRaw] = endISO.split("T");
+		    const timeStart = timeStartRaw.slice(0, 5);
+		    const timeEnd = timeEndRaw.slice(0, 5);
+
+		    const payload = { date, timeStart, timeEnd };
+
+		    // Send update to backend
+		    const res = await fetch(`/api/schedule/${id}`, {
+		      method: "PUT",
+		      headers: { "Content-Type": "application/json" },
+		      body: JSON.stringify(payload),
+		    });
+
+		    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+		    // Update local data store
+		    window.CurrentAppointmentData.updateField("date", date);
+		    window.CurrentAppointmentData.updateField("timeStart", timeStart);
+		    window.CurrentAppointmentData.updateField("timeEnd", timeEnd);
+
+		    console.log(`✅ Appointment ${id} resized to ${timeStart}-${timeEnd}`);
+		  } catch (err) {
+		    console.error("⚠️ Failed to resize appointment:", err);
+		    info.revert();
+		  }
+		},
+
 	});
 
 	calendar.render();
