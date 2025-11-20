@@ -1,22 +1,22 @@
 <!-- templates/fragments/scheduler.html -->
-<div th:fragment="content">
-  <section class="p-4">
-    <!-- Provider Selector Bar -->
-    <div id="scheduler-topbar" class="context-bar" style="margin-bottom: 0.75rem;">
-      <label for="providerFilter" style="margin-right: 0.5rem; font-weight: 600;">Provider:</label>
-      <div style="display:inline-block; position:relative;">
-        <input
-          id="providerFilter"
-          type="text"
-          placeholder="Type provider name..."
-          autocomplete="off"
-          style="width: 220px;"
-        />
-        <div id="providerFilter-suggest" class="inline-suggest hidden"></div>
-      </div>
-    </div>
+<div th:fragment="content" xmlns:th="http://www.thymeleaf.org">
+	<div th:fragment="content">
+		<section class="p-4">
+			<!-- Provider Selector Bar -->
+			<div id="scheduler-topbar" class="context-bar"
+				style="margin-bottom: 0.75rem;">
+				<label for="providerFilter"
+					style="margin-right: 0.5rem; font-weight: 600;">Provider:</label>
+				<div style="display: inline-block; position: relative;">
+					<input id="providerFilter" type="text"
+						placeholder="Type provider name..." autocomplete="off"
+						style="width: 220px;" />
+					<div id="providerFilter-suggest" class="inline-suggest hidden"></div>
+				</div>
+			</div>
 
-    <!-- Calendar Container -->
-    <div id="calendar" class="border rounded shadow-sm"></div>
-  </section>
+			<!-- Calendar Container -->
+			<div id="calendar" class="border rounded shadow-sm"></div>
+		</section>
+	</div>
 </div>

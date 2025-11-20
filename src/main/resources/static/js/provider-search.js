@@ -62,6 +62,34 @@ window.ProviderSearch = {
     this.table.page = 0;
     await this.table.search();
   },
+  
+ async onShown() {
+    const pf = window.EHRState?.consumePrefillProvider?.();
+    if (!pf) return;
+
+    console.log("[ProviderSearch] onShown prefill:", pf);
+
+    const first = pf.first ?? "";
+    const last  = pf.last ?? "";
+
+    // Fill inputs
+    const fn = document.querySelector("#prov-firstName");
+    const ln = document.querySelector("#prov-lastName");
+    const chk = document.querySelector("#prov-inPracticeOnly");
+
+    if (fn) fn.value = first;
+    if (ln) ln.value = last;
+
+    if (chk) {
+      chk.checked = true;
+      chk.value = "true";
+    }
+
+    // Trigger table search
+    this.table.page = 0;
+    this.table.search();
+  },
+
 
   selectProvider(provider) {
     if (!provider) return;
@@ -107,3 +135,13 @@ window.ProviderSearch = {
 document.addEventListener("view:loaded", (e) => {
   if (e.detail.name === "provider") window.ProviderSearch?.init();
 });
+
+// --------------------------------------------------------
+// Lifecycle hook — run prefill on showing provider view
+// --------------------------------------------------------
+document.addEventListener("view:shown", (e) => {
+  if (e.detail.name === "provider") {
+    window.ProviderSearch?.onShown?.();
+  }
+});
+

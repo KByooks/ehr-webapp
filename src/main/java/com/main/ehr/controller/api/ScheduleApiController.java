@@ -1,6 +1,7 @@
 package com.main.ehr.controller.api;
 
 import com.main.ehr.dto.AppointmentRequest;
+import com.main.ehr.mapper.AppointmentMapper;
 import com.main.ehr.model.Appointment;
 import com.main.ehr.model.Patient;
 import com.main.ehr.model.Provider;
@@ -9,7 +10,6 @@ import com.main.ehr.repository.PatientRepository;
 import com.main.ehr.repository.ProviderRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.*;
@@ -32,7 +32,6 @@ public class ScheduleApiController {
     }
 
     // ---------- Provider schedule for FullCalendar ----------
-    // Unambiguous path to avoid matching "create" as a providerId
     @GetMapping("/provider/{providerId}")
     public List<Map<String, Object>> getSchedule(
             @PathVariable Long providerId,
@@ -40,7 +39,7 @@ public class ScheduleApiController {
             @RequestParam(required = false) String end) {
 
         LocalDate startDate = start != null ? LocalDate.parse(start.substring(0, 10)) : LocalDate.now();
-        LocalDate endDate = end != null ? LocalDate.parse(end.substring(0, 10)) : LocalDate.now().plusDays(7);
+        LocalDate endDate   = end != null ? LocalDate.parse(end.substring(0, 10)) : LocalDate.now().plusDays(7);
 
         List<Appointment> appts = appointmentRepository.findByProviderId(providerId);
         List<Map<String, Object>> events = new ArrayList<>();
@@ -58,75 +57,63 @@ public class ScheduleApiController {
             e.put("status", a.getStatus());
             e.put("appointmentType", a.getAppointmentType());
             e.put("reason", a.getReason());
-            e.put("providerId", providerId);
+            e.put("providerId", a.getProvider().getId());
             events.add(e);
         }
         return events;
     }
 
-    // ---------- Read single appointment for edit ----------
+    // ---------- Read single appointment (DTO) ----------
     @GetMapping("/appointment/{id}")
     public ResponseEntity<?> getAppointmentById(@PathVariable Long id) {
-        return appointmentRepository.findById(id)
-                .map(a -> {
-                    Map<String, Object> m = new HashMap<>();
-                    m.put("id", a.getId());
-                    m.put("date", a.getDate().toString());
-                    m.put("timeStart", a.getTimeStart().toString());
-                    m.put("timeEnd", a.getTimeEnd().toString());
-                    m.put("appointmentType", a.getAppointmentType());
-                    m.put("status", a.getStatus());
-                    m.put("reason", a.getReason());
-                    m.put("providerId", a.getProvider() != null ? a.getProvider().getId() : null);
-                    if (a.getPatient() != null) {
-                        Map<String, Object> p = new HashMap<>();
-                        p.put("id", a.getPatient().getId());
-                        p.put("firstName", a.getPatient().getFirstName());
-                        p.put("lastName", a.getPatient().getLastName());
-                        m.put("patient", p);
-                    }
-                    return ResponseEntity.ok(m);
-                })
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Appointment not found")));
+        Optional<Appointment> opt = appointmentRepository.findById(id);
+
+        if (opt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Appointment not found"));
+        }
+
+        return ResponseEntity.ok(AppointmentMapper.toDto(opt.get()));
     }
 
-    // ---------- Create (POST /api/schedule) ----------
+    // ---------- Create ----------
     @PostMapping("")
-    public ResponseEntity<?> createAppointment(@RequestBody AppointmentRequest req) {
+    public ResponseEntity<?> createAppointment(@RequestBody Map<String, Object> body) {
         try {
-            if (req.patientId() == null) {
+            Long providerId = body.get("providerId") == null ? null :
+                    ((Number) body.get("providerId")).longValue();
+
+            Long patientId = body.get("patientId") == null ? null :
+                    ((Number) body.get("patientId")).longValue();
+
+            if (providerId == null || patientId == null) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "Missing patient ID"));
-            }
-            if (req.providerId() == null) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "Missing provider ID"));
+                        .body(Map.of("success", false, "error", "Missing patient or provider ID"));
             }
 
-            Provider provider = providerRepository.findById(req.providerId())
+            Provider provider = providerRepository.findById(providerId)
                     .orElseThrow(() -> new RuntimeException("Provider not found"));
 
-            Patient patient = patientRepository.findById(req.patientId())
+            Patient patient = patientRepository.findById(patientId)
                     .orElseThrow(() -> new RuntimeException("Patient not found"));
 
-            Appointment appt = new Appointment();
-            appt.setProvider(provider);
-            appt.setPatient(patient);
-            appt.setAppointmentType(req.appointmentType());
-            appt.setReason(req.reason());
-            appt.setStatus(req.status() != null ? req.status() : "Scheduled");
-            appt.setDate(LocalDate.parse(req.date()));
-            appt.setTimeStart(LocalTime.parse(req.timeStart()));
-            appt.setTimeEnd(LocalTime.parse(req.timeEnd()));
-            appt.setDurationMinutes(req.durationMinutes() != null ? req.durationMinutes() : 15);
+            Appointment a = new Appointment();
+            a.setProvider(provider);
+            a.setPatient(patient);
+            a.setDate(LocalDate.parse((String) body.get("date")));
+            a.setTimeStart(LocalTime.parse((String) body.get("timeStart")));
+            a.setTimeEnd(LocalTime.parse((String) body.get("timeEnd")));
 
-            appointmentRepository.save(appt);
+            Integer duration = (Integer) body.getOrDefault("duration", 15);
+            a.setDurationMinutes(duration);
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "id", appt.getId()
-            ));
+            a.setAppointmentType((String) body.get("appointmentType"));
+            a.setStatus((String) body.get("status"));
+            a.setReason((String) body.get("reason"));
+
+            appointmentRepository.save(a);
+
+            return ResponseEntity.ok(Map.of("success", true, "id", a.getId()));
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -134,44 +121,54 @@ public class ScheduleApiController {
         }
     }
 
-    // ---------- Update (PUT /api/schedule/{id}) ----------
+    // ---------- Update ----------
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateAppointment(@PathVariable Long id, @RequestBody AppointmentRequest req) {
+    public ResponseEntity<?> updateAppointment(
+            @PathVariable Long id,
+            @RequestBody AppointmentRequest req) {
+
         try {
-            Appointment appt = appointmentRepository.findById(id)
+            Appointment a = appointmentRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Appointment not found"));
 
+            // ---- Provider ----
             if (req.providerId() != null) {
                 Provider provider = providerRepository.findById(req.providerId())
                         .orElseThrow(() -> new RuntimeException("Provider not found"));
-                appt.setProvider(provider);
+                a.setProvider(provider);
             }
+            // If null → keep existing provider automatically
+
+
+            // ---- Patient ----
             if (req.patientId() != null) {
                 Patient patient = patientRepository.findById(req.patientId())
                         .orElseThrow(() -> new RuntimeException("Patient not found"));
-                appt.setPatient(patient);
+                a.setPatient(patient);
             }
-            if (req.appointmentType() != null) appt.setAppointmentType(req.appointmentType());
-            if (req.reason() != null) appt.setReason(req.reason());
-            if (req.status() != null) appt.setStatus(req.status());
-            if (req.date() != null) appt.setDate(LocalDate.parse(req.date()));
-            if (req.timeStart() != null) appt.setTimeStart(LocalTime.parse(req.timeStart()));
-            if (req.timeEnd() != null) appt.setTimeEnd(LocalTime.parse(req.timeEnd()));
-            if (req.durationMinutes() != null) appt.setDurationMinutes(req.durationMinutes());
 
-            appointmentRepository.save(appt);
+            // ---- Basic fields ----
+            if (req.date() != null) a.setDate(LocalDate.parse(req.date()));
+            if (req.timeStart() != null) a.setTimeStart(LocalTime.parse(req.timeStart()));
+            if (req.timeEnd() != null) a.setTimeEnd(LocalTime.parse(req.timeEnd()));
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "id", appt.getId()
-            ));
+            if (req.duration() != null) a.setDurationMinutes(req.duration());
+            if (req.appointmentType() != null) a.setAppointmentType(req.appointmentType());
+            if (req.status() != null) a.setStatus(req.status());
+            if (req.reason() != null) a.setReason(req.reason());
+
+            appointmentRepository.save(a);
+
+            return ResponseEntity.ok(Map.of("success", true, "id", a.getId()));
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("success", false, "error", e.getMessage()));
         }
     }
 
-    // ---------- Delete (DELETE /api/schedule/{id}) ----------
+
+    // ---------- Delete ----------
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAppointment(@PathVariable Long id) {
         try {

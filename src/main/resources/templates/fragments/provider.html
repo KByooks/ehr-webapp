@@ -1,54 +1,59 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<body>
-<!-- templates/fragments/provider.html -->
-<div class="view" data-name="provider" th:fragment="content">
-  <section class="p-4">
-    <h1 class="text-xl font-semibold mb-4">Provider Search</h1>
+<div th:fragment="content" xmlns:th="http://www.thymeleaf.org">
+	<!-- templates/fragments/provider.html -->
+	<div class="view" data-name="provider" th:fragment="content">
+		<section class="p-4">
+			<h1 class="text-xl font-semibold mb-4">Provider Search</h1>
 
-    <!-- Search Filters -->
-    <div id="provider-search-filters" class="search-filters mb-4">
-      <div class="filter-row grid grid-cols-4 gap-3">
-        <input id="prov-firstName" type="text" placeholder="First name" autocomplete="off" class="border p-2 rounded" />
-        <input id="prov-lastName" type="text" placeholder="Last name" autocomplete="off" class="border p-2 rounded" />
-        <input id="prov-specialty" type="text" placeholder="Specialty" autocomplete="off" class="border p-2 rounded" />
-        <input id="prov-phone" type="text" placeholder="Phone" autocomplete="off" class="border p-2 rounded" />
-        <input id="prov-email" type="text" placeholder="Email" autocomplete="off" class="border p-2 rounded" />
-        <input id="prov-active" type="text" placeholder="Active (true/false)" autocomplete="off" class="border p-2 rounded" />
-        <input id="prov-inPracticeOnly" type="text" placeholder="In Practice (true/false)" autocomplete="off" class="border p-2 rounded" />
-        <div></div> <!-- empty grid slot for alignment -->
-        <button id="prov-search-btn" class="col-span-4 bg-blue-600 text-white rounded px-3 py-2">
-          Search
-        </button>
-      </div>
-    </div>
+			<!-- Search Filters -->
+			<div id="provider-search-filters" class="search-filters mb-4">
+				<div class="filter-row grid grid-cols-4 gap-3">
+					<input id="prov-firstName" type="text" placeholder="First name"
+						autocomplete="off" class="border p-2 rounded" /> <input
+						id="prov-lastName" type="text" placeholder="Last name"
+						autocomplete="off" class="border p-2 rounded" /> <input
+						id="prov-specialty" type="text" placeholder="Specialty"
+						autocomplete="off" class="border p-2 rounded" /> <input
+						id="prov-phone" type="text" placeholder="Phone" autocomplete="off"
+						class="border p-2 rounded" /> <input id="prov-email" type="text"
+						placeholder="Email" autocomplete="off" class="border p-2 rounded" />
+					<input id="prov-active" type="text"
+						placeholder="Active (true/false)" autocomplete="off"
+						class="border p-2 rounded" /> <input id="prov-inPracticeOnly"
+						type="text" placeholder="In Practice (true/false)"
+						autocomplete="off" class="border p-2 rounded" />
+					<div></div>
+					<!-- empty grid slot for alignment -->
+					<button id="prov-search-btn"
+						class="col-span-4 bg-blue-600 text-white rounded px-3 py-2">
+						Search</button>
+				</div>
+			</div>
 
-    <!-- Results Table -->
-    <div id="provider-results-wrapper" class="border rounded">
-      <table id="provider-results" class="w-full">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="text-left p-2">Title</th>
-            <th class="text-left p-2">First</th>
-            <th class="text-left p-2">Last</th>
-            <th class="text-left p-2">Specialty</th>
-            <th class="text-left p-2">Phone</th>
-            <th class="text-left p-2">Email</th>
-            <th class="text-left p-2">Active</th>
-            <th class="text-left p-2">In Practice</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+			<!-- Results Table -->
+			<div id="provider-results-wrapper" class="border rounded">
+				<table id="provider-results" class="w-full">
+					<thead class="bg-gray-50">
+						<tr>
+							<th class="text-left p-2">Title</th>
+							<th class="text-left p-2">First</th>
+							<th class="text-left p-2">Last</th>
+							<th class="text-left p-2">Specialty</th>
+							<th class="text-left p-2">Phone</th>
+							<th class="text-left p-2">Email</th>
+							<th class="text-left p-2">Active</th>
+							<th class="text-left p-2">In Practice</th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+			</div>
 
-    <!-- Pagination -->
-    <div id="provider-pagination" class="pagination-controls mt-4">
-      <button id="prov-prev" class="border rounded px-3 py-1">Prev</button>
-      <span id="prov-page-info" class="mx-3 text-sm text-gray-700"></span>
-      <button id="prov-next" class="border rounded px-3 py-1">Next</button>
-    </div>
-  </section>
+			<!-- Pagination -->
+			<div id="provider-pagination" class="pagination-controls mt-4">
+				<button id="prov-prev" class="border rounded px-3 py-1">Prev</button>
+				<span id="prov-page-info" class="mx-3 text-sm text-gray-700"></span>
+				<button id="prov-next" class="border rounded px-3 py-1">Next</button>
+			</div>
+		</section>
+	</div>
 </div>
-</body>
-</html>

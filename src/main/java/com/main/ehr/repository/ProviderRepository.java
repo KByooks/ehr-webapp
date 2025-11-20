@@ -10,41 +10,21 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ProviderRepository extends JpaRepository<Provider, Long> {
 
-    @Query("""
-        SELECT p FROM Provider p
-        WHERE
-          (
-            :inPracticeOnly IS NULL
-            OR (:inPracticeOnly = TRUE AND p.inPractice = TRUE)
-            OR (:inPracticeOnly = FALSE AND p.inPractice = FALSE)
-          )
-          AND (
-            :activeOnly IS NULL
-            OR (:activeOnly = TRUE AND p.active = TRUE)
-            OR (:activeOnly = FALSE AND p.active = FALSE)
-          )
-          AND (
-            :firstName IS NULL
-            OR (
-                (LENGTH(:firstName) <= 1 AND LOWER(p.firstName) LIKE LOWER(CONCAT(:firstName, '%')))
-                OR (LENGTH(:firstName) > 1 AND LOWER(p.firstName) LIKE LOWER(CONCAT('%', :firstName, '%')))
-            )
-          )
-          AND (
-            :lastName IS NULL
-            OR LOWER(p.lastName) LIKE LOWER(CONCAT('%', :lastName, '%'))
-          )
-          AND (
-            :specialty IS NULL
-            OR LOWER(p.specialty) LIKE LOWER(CONCAT('%', :specialty, '%'))
-          )
-        """)
-    Page<Provider> searchProviders(
-        @Param("firstName") String firstName,
-        @Param("lastName") String lastName,
-        @Param("specialty") String specialty,
-        @Param("inPracticeOnly") Boolean inPracticeOnly,
-        @Param("activeOnly") Boolean activeOnly,
-        Pageable pageable
-    );
+	@Query("""
+			SELECT p FROM Provider p
+			WHERE (:firstName IS NULL OR LOWER(p.firstName) LIKE LOWER(CONCAT(:firstName, '%')))
+			AND (:lastName IS NULL OR LOWER(p.lastName) LIKE LOWER(CONCAT(:lastName, '%')))
+			AND (:specialty IS NULL OR LOWER(p.specialty) LIKE LOWER(CONCAT(:specialty, '%')))
+			AND (:inPracticeOnly IS NULL OR p.inPractice = :inPracticeOnly)
+			AND (:activeOnly IS NULL OR p.active = :activeOnly)
+			""")
+			Page<Provider> searchProviders(
+			    @Param("firstName") String firstName,
+			    @Param("lastName") String lastName,
+			    @Param("specialty") String specialty,
+			    @Param("inPracticeOnly") Boolean inPracticeOnly,
+			    @Param("activeOnly") Boolean activeOnly,
+			    Pageable pageable
+			);
+
 }

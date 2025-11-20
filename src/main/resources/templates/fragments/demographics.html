@@ -1,0 +1,119 @@
+<div th:fragment="content" xmlns:th="http://www.thymeleaf.org">
+	<div th:fragment="content">
+		<section class="p-4">
+
+			<!-- Header -->
+			<div class="flex items-center justify-between mb-4">
+				<h1 id="demo-header" class="text-xl font-semibold">New Patient</h1>
+				<button id="demo-back-btn" class="border rounded px-3 py-1 text-sm">
+					Back to Search</button>
+			</div>
+
+			<!-- Form -->
+			<form id="demographics-form" action="javascript:void(0);"
+				class="grid grid-cols-2 gap-4 max-w-4xl">
+
+
+				<!-- Basic Info -->
+				<div>
+					<label for="demo-title" class="block text-sm font-medium mb-1">Title</label>
+					<input id="demo-title" type="text"
+						class="border rounded w-full p-2" />
+				</div>
+
+				<div>
+					<label for="demo-gender" class="block text-sm font-medium mb-1">Gender</label>
+					<input id="demo-gender" type="text"
+						class="border rounded w-full p-2" />
+				</div>
+
+				<div>
+					<label for="demo-firstName" class="block text-sm font-medium mb-1">First
+						Name *</label> <input id="demo-firstName" type="text" required
+						class="border rounded w-full p-2" />
+				</div>
+
+				<div>
+					<label for="demo-middleName" class="block text-sm font-medium mb-1">Middle
+						Name</label> <input id="demo-middleName" type="text"
+						class="border rounded w-full p-2" />
+				</div>
+
+				<div>
+					<label for="demo-lastName" class="block text-sm font-medium mb-1">Last
+						Name *</label> <input id="demo-lastName" type="text" required
+						class="border rounded w-full p-2" />
+				</div>
+
+				<div>
+					<label for="demo-dob" class="block text-sm font-medium mb-1">DOB
+						*</label> <input id="demo-dob" type="date" required
+						class="border rounded w-full p-2" />
+				</div>
+
+				<!-- Contact -->
+				<div>
+					<label for="demo-phonePrimary"
+						class="block text-sm font-medium mb-1">Primary Phone</label> <input
+						id="demo-phonePrimary" type="text"
+						class="border rounded w-full p-2" />
+				</div>
+
+				<div>
+					<label for="demo-phoneSecondary"
+						class="block text-sm font-medium mb-1">Secondary Phone</label> <input
+						id="demo-phoneSecondary" type="text"
+						class="border rounded w-full p-2" />
+				</div>
+
+				<div class="col-span-2">
+					<label for="demo-email" class="block text-sm font-medium mb-1">Email</label>
+					<input id="demo-email" type="email"
+						class="border rounded w-full p-2" />
+				</div>
+
+				<!-- Address -->
+				<div class="col-span-2">
+					<label for="demo-addressLine1"
+						class="block text-sm font-medium mb-1">Address Line 1</label> <input
+						id="demo-addressLine1" type="text"
+						class="border rounded w-full p-2" />
+				</div>
+
+				<div class="col-span-2">
+					<label for="demo-addressLine2"
+						class="block text-sm font-medium mb-1">Address Line 2</label> <input
+						id="demo-addressLine2" type="text"
+						class="border rounded w-full p-2" />
+				</div>
+
+				<div>
+					<label for="demo-city" class="block text-sm font-medium mb-1">City</label>
+					<input id="demo-city" type="text" class="border rounded w-full p-2" />
+				</div>
+
+				<div>
+					<label for="demo-state" class="block text-sm font-medium mb-1">State</label>
+					<input id="demo-state" type="text"
+						class="border rounded w-full p-2" />
+				</div>
+
+				<div>
+					<label for="demo-zip" class="block text-sm font-medium mb-1">ZIP</label>
+					<input id="demo-zip" type="text" class="border rounded w-full p-2" />
+				</div>
+
+				<!-- Buttons -->
+				<div class="col-span-2 flex justify-end gap-2 mt-4">
+					<button type="button" id="demographics-cancel"
+						class="border rounded px-4 py-2 text-sm">Cancel</button>
+					<button type="submit" id="demographics-save"
+						class="bg-blue-600 text-white rounded px-4 py-2 text-sm hover:bg-blue-700">
+						Save</button>
+				</div>
+			</form>
+
+		</section>
+	</div>
+</div>
+

@@ -1,50 +1,61 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<body>
-<!-- templates/fragments/patient.html -->
-<div th:fragment="content">
-  <section class="p-4">
-    <h1 class="text-xl font-semibold mb-4">Patient Search</h1>
+<div th:fragment="content" xmlns:th="http://www.thymeleaf.org">
+	<!-- templates/fragments/patient.html -->
+	<div th:fragment="content">
+		<section class="p-4">
+			<h1 class="text-xl font-semibold mb-4">Patient Search</h1>
 
-    <!-- Search Filters -->
-    <div id="patient-search-filters" class="search-filters mb-4">
-      <div class="filter-row grid grid-cols-4 gap-3">
-        <input id="filter-firstName" type="text" placeholder="First name" autocomplete="off" class="border p-2 rounded" />
-        <input id="filter-lastName" type="text" placeholder="Last name" autocomplete="off" class="border p-2 rounded" />
-        <input id="filter-dob" type="text" placeholder="DOB (MM/DD/YYYY)" autocomplete="off" class="border p-2 rounded" />
-        <input id="filter-phone" type="text" placeholder="Phone" autocomplete="off" class="border p-2 rounded" />
-        <input id="filter-email" type="text" placeholder="Email" autocomplete="off" class="border p-2 rounded" />
-        <input id="filter-city" type="text" placeholder="City" autocomplete="off" class="border p-2 rounded" />
-        <input id="filter-state" type="text" placeholder="State" autocomplete="off" class="border p-2 rounded" />
-        <input id="filter-zip" type="text" placeholder="ZIP" autocomplete="off" class="border p-2 rounded" />
+			<!-- Search Filters -->
+			<div id="patient-search-filters" class="search-filters mb-4">
+				<div class="filter-row grid grid-cols-4 gap-3">
+					<input id="filter-firstName" type="text" placeholder="First name"
+						autocomplete="off" class="border p-2 rounded" /> <input
+						id="filter-lastName" type="text" placeholder="Last name"
+						autocomplete="off" class="border p-2 rounded" /> <input
+						id="filter-dob" type="text" placeholder="DOB (MM/DD/YYYY)"
+						autocomplete="off" class="border p-2 rounded" /> <input
+						id="filter-phone" type="text" placeholder="Phone"
+						autocomplete="off" class="border p-2 rounded" /> <input
+						id="filter-email" type="text" placeholder="Email"
+						autocomplete="off" class="border p-2 rounded" /> <input
+						id="filter-city" type="text" placeholder="City" autocomplete="off"
+						class="border p-2 rounded" /> <input id="filter-state"
+						type="text" placeholder="State" autocomplete="off"
+						class="border p-2 rounded" /> <input id="filter-zip" type="text"
+						placeholder="ZIP" autocomplete="off" class="border p-2 rounded" />
 
-        <button id="search-btn" class="col-span-4 bg-blue-600 text-white rounded px-3 py-2">Search</button>
-      </div>
-    </div>
+					<!-- Search + New Patient on same row -->
+					<div class="col-span-4 flex gap-2">
+						<button id="search-btn"
+							class="bg-blue-600 text-white rounded px-3 py-2">Search
+						</button>
+						<button id="new-patient-btn"
+							class="bg-green-600 text-white rounded px-3 py-2">+ New
+							Patient</button>
+					</div>
+				</div>
+			</div>
 
-    <!-- Results Table -->
-    <div id="patient-results-wrapper" class="border rounded">
-      <table id="patient-results" class="w-full">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="text-left p-2" data-field="firstName">First</th>
-            <th class="text-left p-2" data-field="lastName">Last</th>
-            <th class="text-left p-2" data-field="dob">DOB</th>
-            <th class="text-left p-2" data-field="phone">Phone</th>
-            <th class="text-left p-2" data-field="address">Address</th>
-            <th class="text-left p-2" data-field="city">City</th>
-            <th class="text-left p-2" data-field="state">State</th>
-            <th class="text-left p-2" data-field="zip">ZIP</th>
-            <th class="text-left p-2" data-field="email">Email</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+			<!-- Results Table -->
+			<div id="patient-results-wrapper" class="border rounded">
+				<table id="patient-results" class="w-full">
+					<thead class="bg-gray-50">
+						<tr>
+							<th class="text-left p-2" data-field="firstName">First</th>
+							<th class="text-left p-2" data-field="lastName">Last</th>
+							<th class="text-left p-2" data-field="dob">DOB</th>
+							<th class="text-left p-2" data-field="phone">Phone</th>
+							<th class="text-left p-2" data-field="address">Address</th>
+							<th class="text-left p-2" data-field="city">City</th>
+							<th class="text-left p-2" data-field="state">State</th>
+							<th class="text-left p-2" data-field="zip">ZIP</th>
+							<th class="text-left p-2" data-field="email">Email</th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+			</div>
 
-    <div id="pagination" class="pagination-controls mt-4"></div>
-  </section>
+			<div id="pagination" class="pagination-controls mt-4"></div>
+		</section>
+	</div>
 </div>
-
-</body>
-</html>
